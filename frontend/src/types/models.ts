@@ -47,6 +47,20 @@ export interface ActivityDetail extends ActivitySummary {
   requiresApproval: boolean;
 }
 
+export interface ActivityArchiveSummary {
+  id: number;
+  activityId: number;
+  activityTitle: string;
+  archivedAt: string;
+  photoUrls: string[];
+  createdByName?: string | null;
+}
+
+export interface ActivityArchive extends ActivityArchiveSummary {
+  summary: string;
+  shareUrl?: string | null;
+}
+
 export interface CheckInQrResponse {
   activityId: number;
   qrUrl: string;

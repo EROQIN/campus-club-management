@@ -6,6 +6,8 @@ import type {
   PageResponse,
   CheckInQrResponse,
   ActivityCheckInRecord,
+  ActivityArchive,
+  ActivityArchiveSummary,
 } from '../types/models';
 
 export const fetchClubActivities = async (clubId: number, params: { page?: number; size?: number }) => {
@@ -115,6 +117,33 @@ export const manualCheckIn = async (
 
 export const exportAttendance = async (activityId: number) => {
   const { data } = await api.get<ArrayBuffer>(`/api/activities/${activityId}/attendance/export`, {
+    responseType: 'arraybuffer',
+  });
+  return data;
+};
+
+export const archiveActivity = async (activityId: number, payload: { summary: string; photoUrls: string[] }) => {
+  const { data } = await api.post<ActivityArchive>(`/api/activities/${activityId}/archive`, payload);
+  return data;
+};
+
+export const fetchActivityArchive = async (activityId: number) => {
+  const { data } = await api.get<ActivityArchive>(`/api/activities/${activityId}/archive`);
+  return data;
+};
+
+export const fetchClubActivityArchives = async (
+  clubId: number,
+  params: { keywords?: string; start?: string; end?: string; page?: number; size?: number } = {},
+) => {
+  const { data } = await api.get<PageResponse<ActivityArchiveSummary>>(`/api/clubs/${clubId}/archives`, {
+    params,
+  });
+  return data;
+};
+
+export const exportActivityArchivePdf = async (activityId: number) => {
+  const { data } = await api.get<ArrayBuffer>(`/api/activities/${activityId}/archive/pdf`, {
     responseType: 'arraybuffer',
   });
   return data;

@@ -144,10 +144,33 @@
               {{ row.attendeeCount }} 人
             </template>
           </el-table-column>
-          <el-table-column label="操作" width="220">
+          <el-table-column label="档案状态" width="120">
+            <template #default="{ row }">
+              <el-tag :type="isActivityArchived(row.id) ? 'success' : 'info'" size="small">
+                {{ isActivityArchived(row.id) ? '已归档' : '未归档' }}
+              </el-tag>
+            </template>
+          </el-table-column>
+          <el-table-column label="操作" width="320">
             <template #default="{ row }">
               <el-button link type="primary" @click="openActivityModal(row)">编辑</el-button>
               <el-button link type="success" @click="gotoCheckIn(row.id)">签到管理</el-button>
+              <el-button
+                link
+                type="primary"
+                @click="openArchiveDialog({ id: row.id, title: row.title })"
+              >
+                {{ isActivityArchived(row.id) ? '编辑档案' : '创建档案' }}
+              </el-button>
+              <el-button
+                v-if="isActivityArchived(row.id)"
+                link
+                type="info"
+                :loading="archivePdfDownloading === row.id"
+                @click="downloadArchivePdf(row.id)"
+              >
+                导出档案
+              </el-button>
               <el-button link type="danger" @click="deleteActivityById(row.id)">删除</el-button>
             </template>
           </el-table-column>
@@ -211,6 +234,85 @@
               </template>
             </el-table-column>
           </el-table>
+        </div>
+      </el-tab-pane>
+
+      <el-tab-pane label="活动档案" name="archives">
+        <el-card shadow="never" class="archives__filters">
+          <el-form :model="archiveFilters" inline label-width="80px">
+            <el-form-item label="关键词">
+              <el-input
+                v-model="archiveFilters.keywords"
+                placeholder="搜索活动或总结关键词"
+                clearable
+                @keyup.enter.native="handleArchiveSearch"
+                style="width: 220px"
+              />
+            </el-form-item>
+            <el-form-item label="归档日期">
+              <el-date-picker
+                v-model="archiveFilters.dateRange"
+                type="daterange"
+                value-format="YYYY-MM-DD"
+                range-separator="至"
+                start-placeholder="开始日期"
+                end-placeholder="结束日期"
+              />
+            </el-form-item>
+            <el-form-item>
+              <el-button type="primary" @click="handleArchiveSearch">搜索</el-button>
+              <el-button @click="handleArchiveReset">重置</el-button>
+            </el-form-item>
+          </el-form>
+        </el-card>
+        <el-table
+          :data="archiveSummaries"
+          v-loading="archivesLoading"
+          class="archives__table"
+          empty-text="暂无档案"
+        >
+          <el-table-column prop="activityTitle" label="活动主题" min-width="200" />
+          <el-table-column label="归档时间" width="180">
+            <template #default="{ row }">
+              {{ formatDatetime(row.archivedAt) }}
+            </template>
+          </el-table-column>
+          <el-table-column prop="createdByName" label="归档人" width="140" />
+          <el-table-column label="照片数量" width="120">
+            <template #default="{ row }">
+              {{ row.photoUrls.length }}
+            </template>
+          </el-table-column>
+          <el-table-column label="操作" width="220">
+            <template #default="{ row }">
+              <el-button
+                link
+                type="primary"
+                @click="openArchiveDialog({ id: row.activityId, title: row.activityTitle })"
+              >
+                查看/编辑
+              </el-button>
+              <el-button
+                link
+                type="info"
+                :loading="archivePdfDownloading === row.activityId"
+                @click="downloadArchivePdf(row.activityId)"
+              >
+                导出 PDF
+              </el-button>
+            </template>
+          </el-table-column>
+        </el-table>
+        <div class="archives__pagination" v-if="archivePagination.total > archivePagination.size">
+          <el-pagination
+            layout="sizes, prev, pager, next"
+            :current-page="archivePagination.page"
+            :page-size="archivePagination.size"
+            :total="archivePagination.total"
+            :page-sizes="[10, 20, 30, 50]"
+            @current-change="handleArchivePageChange"
+            @size-change="handleArchivePageSizeChange"
+          />
         </div>
       </el-tab-pane>
 
@@ -454,6 +556,49 @@
       </template>
     </el-dialog>
 
+    <el-dialog
+      v-model="archiveDialogVisible"
+      :title="archiveTarget ? `活动档案：${archiveTarget.title}` : '活动档案'"
+      width="720px"
+    >
+      <el-form label-width="88px" v-loading="archiveDialogLoading">
+        <el-form-item label="活动总结">
+          <el-input
+            type="textarea"
+            v-model="archiveForm.summary"
+            :rows="6"
+            maxlength="1000"
+            show-word-limit
+            placeholder="记录本次活动的亮点、成果与成员反馈..."
+          />
+        </el-form-item>
+        <el-form-item label="活动照片">
+          <el-upload
+            class="archive-upload"
+            list-type="picture-card"
+            multiple
+            :file-list="archiveUploadList"
+            :limit="50"
+            :auto-upload="false"
+            :disabled="archiveUploading || archiveForm.photoUrls.length >= 50"
+            :http-request="handleArchiveUpload"
+            @remove="handleArchiveFileRemove"
+            @preview="handleArchiveFilePreview"
+          >
+            <div class="archive-upload__trigger" :class="{ 'is-disabled': archiveUploading }">
+              <el-icon v-if="!archiveUploading"><Plus /></el-icon>
+              <span v-else>上传中...</span>
+            </div>
+          </el-upload>
+          <div class="form-item__hint">支持 JPG/PNG，单张 ≤ 5MB，最多 50 张。</div>
+        </el-form-item>
+      </el-form>
+      <template #footer>
+        <el-button :disabled="archiveSaving" @click="archiveDialogVisible = false">取消</el-button>
+        <el-button type="primary" :loading="archiveSaving" @click="submitArchive">保存档案</el-button>
+      </template>
+    </el-dialog>
+
     <el-dialog v-model="activityDialogVisible" :title="activityForm.id ? '编辑活动' : '发布活动'" width="600px">
       <el-form :model="activityForm" :rules="activityRules" ref="activityFormRef" label-width="90px">
         <el-form-item label="活动主题" prop="title">
@@ -564,7 +709,7 @@
 <script setup lang="ts">
 import { onMounted, reactive, ref, watch } from 'vue';
 import dayjs from 'dayjs';
-import type { FormInstance, FormRules, UploadRequestOptions } from 'element-plus';
+import type { FormInstance, FormRules, UploadRequestOptions, UploadUserFile } from 'element-plus';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import { useRoute, useRouter } from 'vue-router';
 import {
@@ -584,6 +729,7 @@ import type {
   ClubSummary,
   ClubDetail,
   ActivitySummary,
+  ActivityArchiveSummary,
   MembershipRecord,
   MembershipAdminResponse,
   AnnouncementRecord,
@@ -599,7 +745,12 @@ import {
   fetchRegistrations,
   manualCheckIn,
   exportAttendance,
+  archiveActivity as archiveActivityApi,
+  fetchActivityArchive,
+  fetchClubActivityArchives,
+  exportActivityArchivePdf,
 } from '../../api/activity';
+import { Plus } from '@element-plus/icons-vue';
 import { fetchPointRecords, addPointRecord, fetchPointLeaderboard } from '../../api/points';
 import { listTasks, createTask, updateTask, updateAssignmentStatus } from '../../api/tasks';
 import { fetchClub, updateClub } from '../../api/club';
@@ -646,6 +797,21 @@ const members = ref<MembershipAdminResponse[]>([]);
 const applicants = ref<MembershipRecord[]>([]);
 const clubActivities = ref<ActivitySummary[]>([]);
 const clubMessages = ref<AnnouncementRecord[]>([]);
+
+const archivesLoading = ref(false);
+const archiveSummaries = ref<ActivityArchiveSummary[]>([]);
+const archiveSummaryMap = ref<Record<number, ActivityArchiveSummary>>({});
+const archivePagination = reactive({ page: 1, size: 10, total: 0 });
+const archiveFilters = reactive<{ keywords: string; dateRange: string[] }>({ keywords: '', dateRange: [] });
+
+const archiveDialogVisible = ref(false);
+const archiveDialogLoading = ref(false);
+const archiveSaving = ref(false);
+const archiveUploading = ref(false);
+const archivePdfDownloading = ref<number | null>(null);
+const archiveTarget = ref<{ id: number; title: string } | null>(null);
+const archiveForm = reactive({ summary: '', photoUrls: [] as string[] });
+const archiveUploadList = ref<UploadUserFile[]>([]);
 
 const activityDialogVisible = ref(false);
 const broadcastDialogVisible = ref(false);
@@ -787,8 +953,9 @@ const loadActivities = async () => {
   try {
     const clubId = currentClubId.value;
     if (!clubId) return;
-    const result = await fetchClubActivities(clubId);
+    const result = await fetchClubActivities(clubId, { page: 0, size: 200 });
     clubActivities.value = result.content;
+    await loadArchiveSummaryMap();
   } finally {
     activitiesLoading.value = false;
   }
@@ -838,6 +1005,190 @@ const onAttendanceSelectionChange = (selection: ActivityRegistrationResponse[]) 
     .map((item) => item.attendeeId)
     .filter((id): id is number => typeof id === 'number');
 };
+
+const loadArchiveSummaryMap = async () => {
+  if (!currentClubId.value) return;
+  try {
+    const response = await fetchClubActivityArchives(currentClubId.value, { page: 0, size: 200 });
+    const map: Record<number, ActivityArchiveSummary> = {};
+    response.content.forEach((summary) => {
+      map[summary.activityId] = summary;
+    });
+    archiveSummaryMap.value = map;
+  } catch (error) {
+    console.error('加载活动档案概览失败', error);
+  }
+};
+
+const buildArchiveQuery = () => {
+  const params: Record<string, unknown> = {
+    page: archivePagination.page - 1,
+    size: archivePagination.size,
+  };
+  const keywords = archiveFilters.keywords.trim();
+  if (keywords) {
+    params.keywords = keywords;
+  }
+  if (archiveFilters.dateRange.length === 2) {
+    params.start = archiveFilters.dateRange[0];
+    params.end = archiveFilters.dateRange[1];
+  }
+  return params;
+};
+
+const loadArchives = async () => {
+  if (!currentClubId.value) return;
+  archivesLoading.value = true;
+  try {
+    const response = await fetchClubActivityArchives(currentClubId.value, buildArchiveQuery());
+    archiveSummaries.value = response.content;
+    archivePagination.total = response.totalElements;
+    archivePagination.page = response.number + 1;
+    archivePagination.size = response.size;
+    const map = { ...archiveSummaryMap.value };
+    response.content.forEach((summary) => {
+      map[summary.activityId] = summary;
+    });
+    archiveSummaryMap.value = map;
+  } catch (error: any) {
+    ElMessage.error(error?.response?.data?.message ?? '活动档案加载失败，请稍后再试');
+  } finally {
+    archivesLoading.value = false;
+  }
+};
+
+const resetArchiveForm = () => {
+  archiveForm.summary = '';
+  archiveForm.photoUrls = [];
+  archiveUploadList.value = [];
+};
+
+const openArchiveDialog = async (activity: { id: number; title: string }) => {
+  archiveTarget.value = { id: activity.id, title: activity.title };
+  resetArchiveForm();
+  archiveDialogVisible.value = true;
+  archiveDialogLoading.value = true;
+  try {
+    const archive = await fetchActivityArchive(activity.id);
+    archiveForm.summary = archive.summary;
+    archiveForm.photoUrls = [...archive.photoUrls];
+    archiveUploadList.value = archive.photoUrls.map((url, index) => ({
+      name: `照片${index + 1}`,
+      url,
+      status: 'success',
+    }));
+  } catch (error: any) {
+    if (error?.response?.status !== 404) {
+      ElMessage.error(error?.response?.data?.message ?? '加载活动档案失败');
+    }
+  } finally {
+    archiveDialogLoading.value = false;
+  }
+};
+
+const handleArchiveUpload = async (options: UploadRequestOptions) => {
+  if (archiveForm.photoUrls.length >= 50) {
+    ElMessage.warning('最多上传 50 张照片');
+    return;
+  }
+  const { file, onError, onSuccess } = options;
+  try {
+    archiveUploading.value = true;
+    const result = await uploadImage(file as File, 'activities/archives');
+    archiveForm.photoUrls.push(result.url);
+    archiveUploadList.value = [
+      ...archiveUploadList.value,
+      { name: (file as File).name, url: result.url, status: 'success' },
+    ];
+    onSuccess?.(result);
+    ElMessage.success('照片上传成功');
+  } catch (error: any) {
+    ElMessage.error(error?.response?.data?.message ?? '照片上传失败，请稍后再试');
+    onError?.(error);
+  } finally {
+    archiveUploading.value = false;
+  }
+};
+
+const handleArchiveFileRemove = (file: UploadUserFile) => {
+  if (!file.url) return;
+  archiveForm.photoUrls = archiveForm.photoUrls.filter((url) => url !== file.url);
+  archiveUploadList.value = archiveUploadList.value.filter((item) => item.url !== file.url);
+};
+
+const handleArchiveFilePreview = (file: UploadUserFile) => {
+  if (file.url) {
+    window.open(file.url, '_blank', 'noopener');
+  }
+};
+
+const submitArchive = async () => {
+  if (!archiveTarget.value) return;
+  if (!archiveForm.summary.trim()) {
+    ElMessage.warning('请填写活动总结');
+    return;
+  }
+  archiveSaving.value = true;
+  try {
+    await archiveActivityApi(archiveTarget.value.id, {
+      summary: archiveForm.summary.trim(),
+      photoUrls: archiveForm.photoUrls,
+    });
+    ElMessage.success('活动档案已保存');
+    archiveDialogVisible.value = false;
+    await loadArchiveSummaryMap();
+    if (activeTab.value === 'archives') {
+      await loadArchives();
+    }
+  } catch (error: any) {
+    ElMessage.error(error?.response?.data?.message ?? '保存活动档案失败，请稍后再试');
+  } finally {
+    archiveSaving.value = false;
+  }
+};
+
+const handleArchiveSearch = async () => {
+  archivePagination.page = 1;
+  await loadArchives();
+};
+
+const handleArchiveReset = async () => {
+  archiveFilters.keywords = '';
+  archiveFilters.dateRange = [];
+  archivePagination.page = 1;
+  await loadArchives();
+};
+
+const handleArchivePageChange = async (page: number) => {
+  archivePagination.page = page;
+  await loadArchives();
+};
+
+const handleArchivePageSizeChange = async (size: number) => {
+  archivePagination.size = size;
+  archivePagination.page = 1;
+  await loadArchives();
+};
+
+const downloadArchivePdf = async (activityId: number) => {
+  archivePdfDownloading.value = activityId;
+  try {
+    const data = await exportActivityArchivePdf(activityId);
+    const blob = new Blob([data], { type: 'application/pdf' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `activity-archive-${activityId}.pdf`;
+    link.click();
+    URL.revokeObjectURL(url);
+  } catch (error: any) {
+    ElMessage.error(error?.response?.data?.message ?? '导出档案 PDF 失败，请稍后再试');
+  } finally {
+    archivePdfDownloading.value = null;
+  }
+};
+
+const isActivityArchived = (activityId: number) => Boolean(archiveSummaryMap.value[activityId]);
 
 const submitManualCheckIn = async () => {
   if (!attendanceSelectedActivityId.value || !attendanceSelection.value.length) return;
@@ -1075,6 +1426,9 @@ const loadClubData = async () => {
       ensureAttendanceActivity();
       await loadAttendanceRegistrations();
       break;
+    case 'archives':
+      await loadArchives();
+      break;
     case 'points':
       await loadMembers();
       await loadPointData();
@@ -1095,6 +1449,9 @@ const handleClubChange = async () => {
   attendanceSelection.value = [];
   pointPagination.page = 1;
   taskPagination.page = 1;
+  archivePagination.page = 1;
+  archiveFilters.keywords = '';
+  archiveFilters.dateRange = [];
   await loadClubData();
 };
 
@@ -1354,6 +1711,13 @@ watch(
     }
   },
 );
+
+watch(archiveDialogVisible, (visible) => {
+  if (!visible) {
+    archiveTarget.value = null;
+    resetArchiveForm();
+  }
+});
 </script>
 
 <style scoped>
@@ -1522,6 +1886,38 @@ watch(
 
 .points-negative {
   color: var(--ccm-danger);
+}
+
+.archives__filters {
+  margin-bottom: 16px;
+  border-radius: 12px;
+}
+
+.archives__table {
+  margin-top: 12px;
+}
+
+.archives__pagination {
+  margin-top: 16px;
+  display: flex;
+  justify-content: flex-end;
+}
+
+.archive-upload {
+  --el-upload-picture-card-size: 108px;
+}
+
+.archive-upload__trigger {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  color: var(--ccm-text-secondary);
+}
+
+.archive-upload__trigger.is-disabled {
+  color: var(--ccm-text-muted);
 }
 
 .tasks-panel {

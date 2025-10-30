@@ -1,5 +1,8 @@
 package com.erokin.campusclubmanagement.service;
 
+import com.erokin.campusclubmanagement.dto.activity.ActivityArchiveRequest;
+import com.erokin.campusclubmanagement.dto.activity.ActivityArchiveResponse;
+import com.erokin.campusclubmanagement.dto.activity.ActivityArchiveSummaryResponse;
 import com.erokin.campusclubmanagement.dto.activity.ActivityCheckInRequest;
 import com.erokin.campusclubmanagement.dto.activity.ActivityCheckInResponse;
 import com.erokin.campusclubmanagement.dto.activity.ActivityRegistrationRequest;
@@ -9,6 +12,7 @@ import com.erokin.campusclubmanagement.dto.activity.ActivityResponse;
 import com.erokin.campusclubmanagement.dto.activity.ActivitySummaryResponse;
 import com.erokin.campusclubmanagement.dto.activity.CheckInQrResponse;
 import com.erokin.campusclubmanagement.dto.activity.ManualCheckInRequest;
+import java.time.Instant;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 
@@ -41,4 +45,13 @@ public interface ActivityService {
     Page<ActivityCheckInResponse> manualCheckIn(Long activityId, ManualCheckInRequest request, Pageable pageable);
 
     byte[] exportAttendance(Long activityId);
+
+    ActivityArchiveResponse archiveActivity(Long activityId, ActivityArchiveRequest request);
+
+    ActivityArchiveResponse getActivityArchive(Long activityId);
+
+    Page<ActivityArchiveSummaryResponse> listClubActivityArchives(
+            Long clubId, String keywords, Instant start, Instant end, Pageable pageable);
+
+    byte[] exportActivityArchivePdf(Long activityId);
 }

@@ -1,5 +1,7 @@
 package com.erokin.campusclubmanagement.util;
 
+import com.erokin.campusclubmanagement.dto.activity.ActivityArchiveResponse;
+import com.erokin.campusclubmanagement.dto.activity.ActivityArchiveSummaryResponse;
 import com.erokin.campusclubmanagement.dto.activity.ActivityCheckInResponse;
 import com.erokin.campusclubmanagement.dto.activity.ActivityRegistrationResponse;
 import com.erokin.campusclubmanagement.dto.activity.ActivityResponse;
@@ -16,6 +18,7 @@ import com.erokin.campusclubmanagement.dto.resource.SharedResourceResponse;
 import com.erokin.campusclubmanagement.dto.user.UserProfileResponse;
 import com.erokin.campusclubmanagement.dto.user.UserSummary;
 import com.erokin.campusclubmanagement.entity.Activity;
+import com.erokin.campusclubmanagement.entity.ActivityArchive;
 import com.erokin.campusclubmanagement.entity.ActivityRegistration;
 import com.erokin.campusclubmanagement.entity.ActivityCheckIn;
 import com.erokin.campusclubmanagement.entity.Club;
@@ -192,6 +195,33 @@ public class DtoMapper {
         response.setCheckedInAt(checkIn.getCheckedInAt());
         response.setMethod(checkIn.getMethod().name());
         return response;
+    }
+
+    public ActivityArchiveResponse toActivityArchiveResponse(
+            ActivityArchive archive, String shareUrl) {
+        return ActivityArchiveResponse.builder()
+                .id(archive.getId())
+                .activityId(archive.getActivity().getId())
+                .activityTitle(archive.getActivity().getTitle())
+                .summary(archive.getSummary())
+                .photoUrls(List.copyOf(archive.getPhotoUrls()))
+                .archivedAt(archive.getArchivedAt())
+                .createdByName(
+                        archive.getCreatedBy() != null ? archive.getCreatedBy().getFullName() : null)
+                .shareUrl(shareUrl)
+                .build();
+    }
+
+    public ActivityArchiveSummaryResponse toActivityArchiveSummary(ActivityArchive archive) {
+        return ActivityArchiveSummaryResponse.builder()
+                .id(archive.getId())
+                .activityId(archive.getActivity().getId())
+                .activityTitle(archive.getActivity().getTitle())
+                .archivedAt(archive.getArchivedAt())
+                .photoUrls(List.copyOf(archive.getPhotoUrls()))
+                .createdByName(
+                        archive.getCreatedBy() != null ? archive.getCreatedBy().getFullName() : null)
+                .build();
     }
 
     public MessageResponse toMessageResponse(Message message) {

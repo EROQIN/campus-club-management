@@ -138,6 +138,29 @@ CREATE TABLE activity_registrations (
     REFERENCES users (id) ON DELETE CASCADE ON UPDATE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+CREATE TABLE activity_archives (
+  id BIGINT AUTO_INCREMENT PRIMARY KEY,
+  activity_id BIGINT NOT NULL UNIQUE,
+  created_by_id BIGINT,
+  summary VARCHAR(4000) NOT NULL,
+  archived_at DATETIME(6) NOT NULL,
+  created_at DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
+  updated_at DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6) ON UPDATE CURRENT_TIMESTAMP(6),
+  CONSTRAINT fk_archive_activity FOREIGN KEY (activity_id)
+    REFERENCES activities (id) ON DELETE CASCADE ON UPDATE CASCADE,
+  CONSTRAINT fk_archive_creator FOREIGN KEY (created_by_id)
+    REFERENCES users (id) ON DELETE SET NULL ON UPDATE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE activity_archive_photos (
+  archive_id BIGINT NOT NULL,
+  idx INT NOT NULL,
+  photo_url VARCHAR(512) NOT NULL,
+  PRIMARY KEY (archive_id, idx),
+  CONSTRAINT fk_archive_photo_archive FOREIGN KEY (archive_id)
+    REFERENCES activity_archives (id) ON DELETE CASCADE ON UPDATE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 CREATE TABLE messages (
   id BIGINT AUTO_INCREMENT PRIMARY KEY,
   recipient_id BIGINT NOT NULL,

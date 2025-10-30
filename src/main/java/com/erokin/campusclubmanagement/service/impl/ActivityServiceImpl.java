@@ -1,5 +1,8 @@
 package com.erokin.campusclubmanagement.service.impl;
 
+import com.erokin.campusclubmanagement.dto.activity.ActivityArchiveRequest;
+import com.erokin.campusclubmanagement.dto.activity.ActivityArchiveResponse;
+import com.erokin.campusclubmanagement.dto.activity.ActivityArchiveSummaryResponse;
 import com.erokin.campusclubmanagement.dto.activity.ActivityCheckInRequest;
 import com.erokin.campusclubmanagement.dto.activity.ActivityCheckInResponse;
 import com.erokin.campusclubmanagement.dto.activity.ActivityRegistrationRequest;
@@ -10,6 +13,7 @@ import com.erokin.campusclubmanagement.dto.activity.ActivitySummaryResponse;
 import com.erokin.campusclubmanagement.dto.activity.CheckInQrResponse;
 import com.erokin.campusclubmanagement.dto.activity.ManualCheckInRequest;
 import com.erokin.campusclubmanagement.entity.Activity;
+import com.erokin.campusclubmanagement.entity.ActivityArchive;
 import com.erokin.campusclubmanagement.entity.ActivityCheckIn;
 import com.erokin.campusclubmanagement.entity.ActivityRegistration;
 import com.erokin.campusclubmanagement.entity.Club;
@@ -21,9 +25,11 @@ import com.erokin.campusclubmanagement.enums.Role;
 import com.erokin.campusclubmanagement.enums.CheckInMethod;
 import com.erokin.campusclubmanagement.exception.BusinessException;
 import com.erokin.campusclubmanagement.exception.ResourceNotFoundException;
+import com.erokin.campusclubmanagement.repository.ActivityArchiveRepository;
 import com.erokin.campusclubmanagement.repository.ActivityRegistrationRepository;
 import com.erokin.campusclubmanagement.repository.ActivityRepository;
 import com.erokin.campusclubmanagement.repository.ActivityCheckInRepository;
+import com.erokin.campusclubmanagement.repository.ActivityArchiveRepository;
 import com.erokin.campusclubmanagement.repository.ClubRepository;
 import com.erokin.campusclubmanagement.repository.MessageRepository;
 import com.erokin.campusclubmanagement.repository.UserRepository;
@@ -36,6 +42,8 @@ import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.time.Duration;
 import java.time.Instant;
+import java.util.ArrayList;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -44,8 +52,15 @@ import org.springframework.beans.factory.annotation.Value;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import java.io.IOException;
+import org.apache.pdfbox.pdmodel.PDDocument;
+import org.apache.pdfbox.pdmodel.PDPage;
+import org.apache.pdfbox.pdmodel.PDPageContentStream;
+import org.apache.pdfbox.pdmodel.common.PDRectangle;
+import org.apache.pdfbox.pdmodel.font.PDType1Font;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.StringUtils;
 
 import org.apache.poi.ss.usermodel.Cell;
 import org.apache.poi.ss.usermodel.CellStyle;
@@ -62,6 +77,7 @@ public class ActivityServiceImpl implements ActivityService {
     private final ClubRepository clubRepository;
     private final ActivityRepository activityRepository;
     private final ActivityRegistrationRepository registrationRepository;
+    private final ActivityArchiveRepository activityArchiveRepository;
     private final ActivityCheckInRepository checkInRepository;
     private final UserRepository userRepository;
     private final MessageRepository messageRepository;
@@ -424,6 +440,312 @@ public class ActivityServiceImpl implements ActivityService {
             return out.toByteArray();
         } catch (Exception e) {
             throw new BusinessException("导出考勤报表失败，请稍后再试");
+        }
+    }
+
+    @Override
+    public ActivityArchiveResponse archiveActivity(Long activityId, ActivityArchiveRequest request) {
+        Activity activity = findActivity(activityId);
+        User current = getCurrentUser();
+        ensureManager(current, activity.getClub());
+
+        List<String> sanitizedPhotos = sanitizePhotoUrls(request.getPhotoUrls());
+
+        ActivityArchive archive =
+                activityArchiveRepository
+                        .findByActivityId(activityId)
+                        .orElseGet(() -> {
+                            ActivityArchive created = new ActivityArchive();
+                            created.setActivity(activity);
+                            created.setCreatedBy(current);
+                            return created;
+                        });
+
+        archive.setSummary(request.getSummary().trim());
+        archive.setPhotoUrls(new ArrayList<>(sanitizedPhotos));
+        archive.setArchivedAt(Instant.now());
+        if (archive.getCreatedBy() == null) {
+            archive.setCreatedBy(current);
+        }
+
+        ActivityArchive saved = activityArchiveRepository.save(archive);
+        return dtoMapper.toActivityArchiveResponse(saved, buildArchiveShareUrl(saved.getId()));
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public ActivityArchiveResponse getActivityArchive(Long activityId) {
+        Activity activity = findActivity(activityId);
+        User current = getCurrentUser();
+        ensureManager(current, activity.getClub());
+
+        ActivityArchive archive =
+                activityArchiveRepository
+                        .findByActivityId(activityId)
+                        .orElseThrow(() -> new ResourceNotFoundException("活动档案不存在"));
+        return dtoMapper.toActivityArchiveResponse(archive, buildArchiveShareUrl(archive.getId()));
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Page<ActivityArchiveSummaryResponse> listClubActivityArchives(
+            Long clubId, String keywords, Instant start, Instant end, Pageable pageable) {
+        Club club = findClub(clubId);
+        User current = getCurrentUser();
+        ensureManager(current, club);
+        String sanitizedKeywords = StringUtils.hasText(keywords) ? keywords.trim() : null;
+        return activityArchiveRepository
+                .searchByClub(clubId, sanitizedKeywords, start, end, pageable)
+                .map(dtoMapper::toActivityArchiveSummary);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public byte[] exportActivityArchivePdf(Long activityId) {
+        Activity activity = findActivity(activityId);
+        User current = getCurrentUser();
+        ensureManager(current, activity.getClub());
+        ActivityArchive archive =
+                activityArchiveRepository
+                        .findByActivityId(activityId)
+                        .orElseThrow(() -> new ResourceNotFoundException("活动档案不存在"));
+
+        try (PDDocument document = new PDDocument();
+                ByteArrayOutputStream out = new ByteArrayOutputStream();
+                PdfWriter writer = new PdfWriter(document)) {
+            writer.writeTitle("活动档案");
+            writer.writeLine("社团：" + activity.getClub().getName());
+            writer.writeLine("活动主题：" + activity.getTitle());
+            writer.writeLine("活动时间：" + formatInstantRange(activity.getStartTime(), activity.getEndTime()));
+            writer.writeLine("归档时间：" + formatInstant(archive.getArchivedAt()));
+            writer.writeBlankLine();
+            writer.writeSectionHeader("活动总结");
+            writer.writeParagraph(archive.getSummary());
+            writer.writeBlankLine();
+            writer.writeSectionHeader("活动照片");
+            if (archive.getPhotoUrls().isEmpty()) {
+                writer.writeParagraph("暂无上传照片");
+            } else {
+                for (String url : archive.getPhotoUrls()) {
+                    writer.writeParagraph(url);
+                }
+            }
+            document.save(out);
+            return out.toByteArray();
+        } catch (Exception e) {
+            throw new BusinessException("导出档案 PDF 失败，请稍后再试");
+        }
+    }
+
+    private List<String> sanitizePhotoUrls(List<String> photoUrls) {
+        List<String> source = photoUrls == null ? List.of() : photoUrls;
+        if (source.size() > 50) {
+            throw new BusinessException("最多上传 50 张活动照片");
+        }
+        List<String> sanitized = new ArrayList<>();
+        for (String url : source) {
+            if (!StringUtils.hasText(url)) {
+                continue;
+            }
+            String trimmed = url.trim();
+            if (trimmed.length() > 512) {
+                throw new BusinessException("图片地址过长，请检查后重试");
+            }
+            sanitized.add(trimmed);
+        }
+        return sanitized;
+    }
+
+    private String buildArchiveShareUrl(Long archiveId) {
+        if (!StringUtils.hasText(frontendBaseUrl)) {
+            return null;
+        }
+        String base = frontendBaseUrl.trim();
+        if (base.endsWith("/")) {
+            base = base.substring(0, base.length() - 1);
+        }
+        return base + "/archives/activities/" + archiveId;
+    }
+
+    private String formatInstantRange(Instant start, Instant end) {
+        if (start == null && end == null) {
+            return "未设置";
+        }
+        String startText = formatInstant(start);
+        String endText = formatInstant(end);
+        if (start != null && end != null) {
+            return startText + " ~ " + endText;
+        }
+        return start != null ? startText : endText;
+    }
+
+    private String formatInstant(Instant instant) {
+        if (instant == null) {
+            return "未设置";
+        }
+        return java.time.ZonedDateTime.ofInstant(instant, java.time.ZoneId.systemDefault())
+                .format(java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm"));
+    }
+
+    private static class PdfWriter implements AutoCloseable {
+        private static final float MARGIN = 50f;
+        private static final float LEADING = 18f;
+        private static final float TITLE_FONT_SIZE = 18f;
+        private static final float HEADER_FONT_SIZE = 14f;
+        private static final float BODY_FONT_SIZE = 12f;
+        private static final float CONTENT_WIDTH = PDRectangle.A4.getWidth() - 2 * MARGIN;
+
+        private final PDDocument document;
+        private PDPage currentPage;
+        private PDPageContentStream contentStream;
+        private float cursorY;
+
+        PdfWriter(PDDocument document) throws java.io.IOException {
+            this.document = document;
+            addPage();
+        }
+
+        void writeTitle(String title) throws java.io.IOException {
+            writeLine(PDType1Font.HELVETICA_BOLD, TITLE_FONT_SIZE, title);
+            writeBlankLine();
+        }
+
+        void writeSectionHeader(String header) throws java.io.IOException {
+            writeLine(PDType1Font.HELVETICA_BOLD, HEADER_FONT_SIZE, header);
+        }
+
+        void writeLine(PDType1Font font, float fontSize, String text) throws IOException {
+            ensureSpace();
+            contentStream.beginText();
+            contentStream.setFont(font, fontSize);
+            contentStream.newLineAtOffset(MARGIN, cursorY);
+            contentStream.showText(sanitize(text));
+            contentStream.endText();
+            cursorY -= LEADING;
+        }
+
+        void writeLine(String text) throws IOException {
+            writeLine(PDType1Font.HELVETICA, BODY_FONT_SIZE, text);
+        }
+
+        void writeParagraph(String text) throws IOException {
+            if (!StringUtils.hasText(text)) {
+                writeLine(PDType1Font.HELVETICA, BODY_FONT_SIZE, "");
+                return;
+            }
+            for (String line : wrapText(text)) {
+                writeLine(PDType1Font.HELVETICA, BODY_FONT_SIZE, line);
+            }
+        }
+
+        void writeBlankLine() throws IOException {
+            ensureSpace();
+            cursorY -= LEADING;
+        }
+
+        private void ensureSpace() throws IOException {
+            if (cursorY <= MARGIN) {
+                addPage();
+            }
+        }
+
+        private void addPage() throws IOException {
+            closeCurrentStream();
+            currentPage = new PDPage(PDRectangle.A4);
+            document.addPage(currentPage);
+            contentStream = new PDPageContentStream(document, currentPage);
+            cursorY = currentPage.getMediaBox().getHeight() - MARGIN;
+        }
+
+        private void closeCurrentStream() throws IOException {
+            if (contentStream != null) {
+                contentStream.close();
+            }
+        }
+
+        private List<String> wrapText(String text) {
+            String normalized = text.replace('\r', '\n');
+            String[] paragraphs = normalized.split("\n");
+            List<String> result = new ArrayList<>();
+            for (String paragraph : paragraphs) {
+                if (!StringUtils.hasText(paragraph)) {
+                    result.add("");
+                    continue;
+                }
+                String[] words = paragraph.trim().split("\\s+");
+                StringBuilder line = new StringBuilder();
+                for (String word : words) {
+                    String candidate = line.length() == 0 ? word : line + " " + word;
+                    if (getTextWidth(candidate) > CONTENT_WIDTH) {
+                        if (line.length() > 0) {
+                            result.add(line.toString());
+                            line.setLength(0);
+                            candidate = word;
+                        }
+                        if (getTextWidth(candidate) > CONTENT_WIDTH) {
+                            result.addAll(splitLongWord(candidate));
+                            continue;
+                        }
+                    }
+                    line.setLength(0);
+                    line.append(candidate);
+                }
+                if (line.length() > 0) {
+                    result.add(line.toString());
+                }
+            }
+            return result;
+        }
+
+        private List<String> splitLongWord(String word) {
+            List<String> result = new ArrayList<>();
+            StringBuilder current = new StringBuilder();
+            for (char ch : word.toCharArray()) {
+                current.append(ch);
+                if (getTextWidth(current.toString()) > CONTENT_WIDTH) {
+                    if (current.length() > 1) {
+                        current.setLength(current.length() - 1);
+                        result.add(current.toString());
+                        current.setLength(0);
+                        current.append(ch);
+                    } else {
+                        result.add(current.toString());
+                        current.setLength(0);
+                    }
+                }
+            }
+            if (current.length() > 0) {
+                result.add(current.toString());
+            }
+            return result;
+        }
+
+        private float getTextWidth(String text) {
+            try {
+                return PDType1Font.HELVETICA.getStringWidth(sanitize(text)) / 1000f * BODY_FONT_SIZE;
+            } catch (IOException e) {
+                return CONTENT_WIDTH;
+            }
+        }
+
+        private String sanitize(String text) {
+            if (text == null) {
+                return "";
+            }
+            StringBuilder builder = new StringBuilder(text.length());
+            for (char ch : text.toCharArray()) {
+                if (ch >= 32 && ch <= 126) {
+                    builder.append(ch);
+                } else {
+                    builder.append('?');
+                }
+            }
+            return builder.toString();
+        }
+
+        @Override
+        public void close() throws IOException {
+            closeCurrentStream();
         }
     }
 

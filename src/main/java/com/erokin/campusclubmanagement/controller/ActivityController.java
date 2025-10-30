@@ -1,5 +1,8 @@
 package com.erokin.campusclubmanagement.controller;
 
+import com.erokin.campusclubmanagement.dto.activity.ActivityArchiveRequest;
+import com.erokin.campusclubmanagement.dto.activity.ActivityArchiveResponse;
+import com.erokin.campusclubmanagement.dto.activity.ActivityArchiveSummaryResponse;
 import com.erokin.campusclubmanagement.dto.activity.ActivityCheckInRequest;
 import com.erokin.campusclubmanagement.dto.activity.ActivityCheckInResponse;
 import com.erokin.campusclubmanagement.dto.activity.ActivityRegistrationRequest;
@@ -27,6 +30,10 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import java.time.Instant;
+import java.time.LocalDate;
+import java.time.ZoneId;
+import org.springframework.util.StringUtils;
 
 @RestController
 @RequestMapping("/api")
@@ -141,5 +148,53 @@ public class ActivityController {
         return ResponseEntity.ok()
                 .headers(headers)
                 .body(resource);
+    }
+
+    @PostMapping("/activities/{id}/archive")
+    public ResponseEntity<ActivityArchiveResponse> archiveActivity(
+            @PathVariable Long id, @Valid @RequestBody ActivityArchiveRequest request) {
+        return ResponseEntity.ok(activityService.archiveActivity(id, request));
+    }
+
+    @GetMapping("/activities/{id}/archive")
+    public ResponseEntity<ActivityArchiveResponse> getArchive(@PathVariable Long id) {
+        return ResponseEntity.ok(activityService.getActivityArchive(id));
+    }
+
+    @GetMapping("/activities/{id}/archive/pdf")
+    public ResponseEntity<ByteArrayResource> exportArchivePdf(@PathVariable Long id) {
+        byte[] pdf = activityService.exportActivityArchivePdf(id);
+        ByteArrayResource resource = new ByteArrayResource(pdf);
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_PDF);
+        headers.setContentLength(pdf.length);
+        headers.setContentDispositionFormData("attachment", "activity-archive-" + id + ".pdf");
+        return ResponseEntity.ok().headers(headers).body(resource);
+    }
+
+    @GetMapping("/clubs/{clubId}/archives")
+    public ResponseEntity<Page<ActivityArchiveSummaryResponse>> listArchives(
+            @PathVariable Long clubId,
+            @RequestParam(value = "keywords", required = false) String keywords,
+            @RequestParam(value = "start", required = false) String start,
+            @RequestParam(value = "end", required = false) String end,
+            @RequestParam(value = "page", defaultValue = "0") int page,
+            @RequestParam(value = "size", defaultValue = "10") int size) {
+        Pageable pageable = PageRequest.of(Math.max(page, 0), Math.min(size, 50));
+        Instant startInstant = parseDate(start, true);
+        Instant endInstant = parseDate(end, false);
+        return ResponseEntity.ok(
+                activityService.listClubActivityArchives(clubId, keywords, startInstant, endInstant, pageable));
+    }
+
+    private Instant parseDate(String value, boolean startOfDay) {
+        if (!StringUtils.hasText(value)) {
+            return null;
+        }
+        LocalDate date = LocalDate.parse(value.trim());
+        if (startOfDay) {
+            return date.atStartOfDay(ZoneId.systemDefault()).toInstant();
+        }
+        return date.plusDays(1).atStartOfDay(ZoneId.systemDefault()).toInstant().minusSeconds(1);
     }
 }
