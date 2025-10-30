@@ -28,6 +28,13 @@
           </el-breadcrumb>
         </div>
         <div class="layout__header-right">
+          <el-tooltip :content="isDarkMode ? '切换到明亮模式' : '切换到暗色模式'" placement="bottom">
+            <el-button class="layout__theme-toggle" circle text @click="toggleTheme">
+              <el-icon :size="18">
+                <component :is="isDarkMode ? Moon : Sunny" />
+              </el-icon>
+            </el-button>
+          </el-tooltip>
           <el-badge :value="unreadCount" :hidden="!unreadCount">
             <el-button text @click="navigateMessages">消息</el-button>
           </el-badge>
@@ -58,7 +65,8 @@
 import { computed, onMounted, ref, watch } from 'vue';
 import { useRoute, useRouter, RouterView } from 'vue-router';
 import { useAuthStore } from '../store/auth';
-import { Collection, House, TrendCharts, Tickets, ChatLineSquare, Box, Setting } from '@element-plus/icons-vue';
+import { useThemeStore } from '../store/theme';
+import { Collection, House, TrendCharts, Tickets, ChatLineSquare, Box, Setting, Sunny, Moon, Calendar, Finished } from '@element-plus/icons-vue';
 import { fetchUnreadCount } from '../api/message';
 
 interface MenuItem {
@@ -72,6 +80,7 @@ const router = useRouter();
 const route = useRoute();
 const auth = useAuthStore();
 const unreadCount = ref<number>(0);
+const themeStore = useThemeStore();
 const breadcrumbs = ref<string[]>([]);
 
 const menu: MenuItem[] = [
@@ -82,6 +91,8 @@ const menu: MenuItem[] = [
   { label: '资源共享', route: '/resources', icon: Box },
   { label: '协作广场', route: '/collaborations', icon: ChatLineSquare },
   { label: '社团管理', route: '/club/manage', icon: Collection, roles: ['CLUB_MANAGER', 'UNION_STAFF', 'SYSTEM_ADMIN'] },
+  { label: '活动管理', route: '/club/manage/activities', icon: Calendar, roles: ['CLUB_MANAGER', 'UNION_STAFF', 'SYSTEM_ADMIN'] },
+  { label: '签到管理', route: '/club/check-in-manager', icon: Finished, roles: ['CLUB_MANAGER', 'UNION_STAFF', 'SYSTEM_ADMIN'] },
   { label: '账号管理', route: '/admin/users', icon: Setting, roles: ['SYSTEM_ADMIN'] },
 ];
 
@@ -94,11 +105,23 @@ const filteredMenu = computed(() => {
 });
 
 const activeMenu = computed(() => {
-  const match = filteredMenu.value.find((item) => route.path.startsWith(item.route));
-  return match ? match.route : route.path;
+  const currentPath = route.path;
+  let matchedRoute = currentPath;
+  let maxLength = -1;
+  for (const item of filteredMenu.value) {
+    const itemRoute = item.route;
+    if (currentPath === itemRoute || currentPath.startsWith(`${itemRoute}/`) || currentPath.startsWith(itemRoute)) {
+      if (itemRoute.length > maxLength) {
+        maxLength = itemRoute.length;
+        matchedRoute = itemRoute;
+      }
+    }
+  }
+  return matchedRoute;
 });
 
 const initials = computed(() => auth.user?.fullName?.slice(0, 1) ?? '访');
+const isDarkMode = computed(() => themeStore.mode === 'dark');
 
 const handleMenuSelect = (index: string) => {
   router.push(index);
@@ -115,6 +138,10 @@ const goProfile = () => {
 const logout = () => {
   auth.logout();
   router.replace('/login');
+};
+
+const toggleTheme = () => {
+  themeStore.toggleTheme();
 };
 
 const buildBreadcrumbs = () => {
@@ -155,11 +182,12 @@ watch(
 }
 
 .layout__sidebar {
-  background-color: #0f172a;
-  color: #eef2ff;
+  background: var(--ccm-sidebar-bg);
+  color: var(--ccm-sidebar-text);
   display: flex;
   flex-direction: column;
-  box-shadow: 4px 0 24px -16px rgba(15, 23, 42, 0.7);
+  border-right: 1px solid var(--ccm-sidebar-border);
+  box-shadow: var(--ccm-card-shadow);
 }
 
 .layout__brand {
@@ -167,46 +195,47 @@ watch(
   font-weight: 600;
   padding: 20px;
   text-align: center;
-  background: linear-gradient(135deg, rgba(129, 140, 248, 0.2), rgba(14, 165, 233, 0.1));
-  border-bottom: 1px solid rgba(148, 163, 184, 0.2);
+  background: var(--ccm-surface-gradient);
+  color: var(--ccm-sidebar-text);
+  border-bottom: 1px solid var(--ccm-sidebar-border);
 }
 
 .layout__menu {
   flex: 1;
   border-right: none;
   background-color: transparent;
-  --el-menu-text-color: #cbd5f5;
-  --el-menu-active-color: #60a5fa;
+  --el-menu-text-color: var(--ccm-sidebar-text);
+  --el-menu-active-color: var(--ccm-primary);
   --el-menu-hover-bg-color: rgba(148, 163, 184, 0.16);
   --el-menu-bg-color: transparent;
 }
 
 .layout__menu :deep(.el-menu-item) {
-  border-radius: 8px;
+  border-radius: 10px;
   margin: 0 12px;
-}
-
-.layout__menu :deep(.el-menu-item__content) {
   font-weight: 500;
-  letter-spacing: 0.5px;
+  color: var(--ccm-sidebar-text);
 }
 
 .layout__menu :deep(.el-menu-item.is-active) {
-  background-color: rgba(96, 165, 250, 0.18);
-  color: #fff;
+  background-color: var(--ccm-primary-soft);
+  color: var(--ccm-primary);
 }
 
 .layout__header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  background: #ffffff;
-  border-bottom: 1px solid #e2e8f0;
+  background: var(--ccm-surface);
+  border-bottom: 1px solid var(--ccm-border);
+  padding: 0 20px;
+  transition: background 0.35s ease, border-color 0.35s ease;
 }
 
 .layout__header-left {
   display: flex;
   align-items: center;
+  color: var(--ccm-text-secondary);
 }
 
 .layout__header-right {
@@ -215,20 +244,34 @@ watch(
   gap: 12px;
 }
 
+.layout__theme-toggle {
+  color: var(--ccm-text-secondary);
+}
+
 .layout__user {
   display: inline-flex;
   align-items: center;
   gap: 8px;
   cursor: pointer;
+  color: var(--ccm-text-primary);
 }
 
 .layout__user-name {
   font-size: 14px;
-  color: #1f2937;
+  color: inherit;
 }
 
 .layout__main {
-  background-color: #f5f7fa;
-  padding: 20px;
+  background-color: var(--ccm-bg-page);
+  padding: 24px;
+  transition: background-color 0.35s ease;
+}
+
+.layout__header :deep(.el-breadcrumb__inner) {
+  color: var(--ccm-text-secondary);
+}
+
+.layout__header :deep(.el-breadcrumb__separator) {
+  color: var(--ccm-text-muted);
 }
 </style>

@@ -107,17 +107,54 @@ public class ClubServiceImpl implements ClubService {
 
     @Override
     @Transactional(readOnly = true)
-    public Page<ClubSummaryResponse> searchClubs(String keywords, String category, Pageable pageable) {
-        Page<Club> clubs = clubRepository.search(trimToNull(keywords), trimToNull(category), pageable);
+    public Page<ClubSummaryResponse> searchClubs(
+            String keywords, String category, List<String> tags, Pageable pageable) {
+        String keywordFilter = trimToNull(keywords);
+        String categoryFilter = trimToNull(category);
+        List<String> normalizedTags =
+                tags == null
+                        ? List.of()
+                        : tags.stream()
+                                .filter(StringUtils::hasText)
+                                .map(String::trim)
+                                .map(String::toLowerCase)
+                                .distinct()
+                                .toList();
+
+        Page<Club> clubs;
+        if (!normalizedTags.isEmpty()) {
+            clubs =
+                    clubRepository.searchByTags(
+                            keywordFilter, categoryFilter, normalizedTags, pageable);
+        } else {
+            clubs = clubRepository.search(keywordFilter, categoryFilter, pageable);
+        }
+
+        Set<String> tagFilterSet = Set.copyOf(normalizedTags);
+
         return clubs.map(
-                club ->
-                        dtoMapper.toClubSummary(
-                                club,
-                                (int)
-                                        clubMembershipRepository.countByClubAndStatus(
-                                                club, MembershipStatus.APPROVED),
-                                (int) activityRepository.countByClubAndStartTimeAfter(
-                                        club, Instant.now().minus(90, ChronoUnit.DAYS))));
+                club -> {
+                    int memberCount =
+                            (int)
+                                    clubMembershipRepository.countByClubAndStatus(
+                                            club, MembershipStatus.APPROVED);
+                    int activityCount =
+                            (int)
+                                    activityRepository.countByClubAndStartTimeAfter(
+                                            club, Instant.now().minus(90, ChronoUnit.DAYS));
+                    ClubSummaryResponse summary =
+                            dtoMapper.toClubSummary(club, memberCount, activityCount);
+
+                    if (!tagFilterSet.isEmpty()) {
+                        List<String> matched =
+                                club.getTags().stream()
+                                        .map(InterestTag::getName)
+                                        .filter(name -> tagFilterSet.contains(name.toLowerCase()))
+                                        .toList();
+                        summary.setMatchedTags(matched);
+                    }
+                    return summary;
+                });
     }
 
     @Override
@@ -131,7 +168,11 @@ public class ClubServiceImpl implements ClubService {
                         .collect(Collectors.toSet());
 
         Set<String> interestNames =
-                current.getInterests().stream().map(InterestTag::getName).collect(Collectors.toSet());
+                current.getInterests().stream()
+                        .map(InterestTag::getName)
+                        .filter(StringUtils::hasText)
+                        .map(name -> name.trim().toLowerCase())
+                        .collect(Collectors.toSet());
 
         List<Club> clubs = clubRepository.findAll();
         List<ClubSummaryResponse> scored =
@@ -150,12 +191,16 @@ public class ClubServiceImpl implements ClubService {
                                     ClubSummaryResponse summary =
                                             dtoMapper.toClubSummary(club, memberCount, activityCount);
 
-                                    int matchScore =
-                                            (int)
-                                                    club.getTags().stream()
-                                                            .map(InterestTag::getName)
-                                                            .filter(interestNames::contains)
-                                                            .count();
+                                    List<String> matchedTags =
+                                            club.getTags().stream()
+                                                    .map(InterestTag::getName)
+                                                    .filter(StringUtils::hasText)
+                                                    .filter(
+                                                            tag ->
+                                                                    interestNames.contains(
+                                                                            tag.trim().toLowerCase()))
+                                                    .toList();
+                                    int matchScore = matchedTags.size();
                                     if (club.getCategory() != null
                                             && interestNames.stream()
                                                     .anyMatch(
@@ -166,6 +211,7 @@ public class ClubServiceImpl implements ClubService {
                                         matchScore += 1;
                                     }
                                     summary.setRecommendationScore(matchScore);
+                                    summary.setMatchedTags(matchedTags);
                                     return summary;
                                 })
                         .sorted((a, b) -> Integer.compare(b.getRecommendationScore(), a.getRecommendationScore()))

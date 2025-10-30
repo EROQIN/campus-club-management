@@ -78,6 +78,12 @@ const routes: RouteRecordRaw[] = [
         meta: { roles: ['CLUB_MANAGER', 'UNION_STAFF', 'SYSTEM_ADMIN'] },
       },
       {
+        path: 'club/manage/activities',
+        name: 'club-manage-activities',
+        component: () => import('../views/club/ClubManagementView.vue'),
+        meta: { roles: ['CLUB_MANAGER', 'UNION_STAFF', 'SYSTEM_ADMIN'], defaultTab: 'activities' },
+      },
+      {
         path: 'club/check-in-manager',
         name: 'club-checkin-manager',
         component: () => import('../views/CheckInManagerView.vue'),

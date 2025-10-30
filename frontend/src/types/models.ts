@@ -10,6 +10,7 @@ export interface ClubSummary {
   activityCount: number;
   tags: string[];
   recommendationScore?: number;
+  matchedTags?: string[];
 }
 
 export interface ClubDetail extends ClubSummary {

@@ -562,11 +562,11 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted, reactive, ref } from 'vue';
+import { onMounted, reactive, ref, watch } from 'vue';
 import dayjs from 'dayjs';
 import type { FormInstance, FormRules, UploadRequestOptions } from 'element-plus';
 import { ElMessage, ElMessageBox } from 'element-plus';
-import { useRouter } from 'vue-router';
+import { useRoute, useRouter } from 'vue-router';
 import {
   fetchMyClubs,
   fetchClubActivities,
@@ -605,7 +605,14 @@ import { listTasks, createTask, updateTask, updateAssignmentStatus } from '../..
 import { fetchClub, updateClub } from '../../api/club';
 import api from '../../api/http';
 
-const activeTab = ref('members');
+const route = useRoute();
+const getRouteTab = () => {
+  const metaTab = route.meta.defaultTab as string | undefined;
+  const queryTab = (route.query.tab as string | undefined) ?? null;
+  return metaTab ?? queryTab ?? 'members';
+};
+
+const activeTab = ref(getRouteTab());
 const myClubs = ref<ClubSummary[]>([]);
 const currentClubId = ref<number | null>(null);
 
@@ -1092,7 +1099,17 @@ const handleClubChange = async () => {
 };
 
 const handleTabChange = async (tab: string | number) => {
-  activeTab.value = tab as string;
+  const tabName = tab as string;
+  activeTab.value = tabName;
+  if (tabName === 'activities') {
+    if (route.name !== 'club-manage-activities') {
+      await router.replace({ name: 'club-manage-activities' });
+    }
+  } else {
+    if (route.name !== 'club-manage' || (tabName === 'members' && route.query.tab) || (tabName !== 'members' && route.query.tab !== tabName)) {
+      await router.replace({ name: 'club-manage', query: tabName !== 'members' ? { tab: tabName } : {} });
+    }
+  }
   await loadClubData();
 };
 
@@ -1324,6 +1341,19 @@ onMounted(async () => {
   await loadClubTagOptions();
   await loadMyClubList();
 });
+
+watch(
+  () => route.fullPath,
+  async () => {
+    const targetTab = getRouteTab();
+    if (activeTab.value !== targetTab) {
+      activeTab.value = targetTab;
+      if (currentClubId.value) {
+        await loadClubData();
+      }
+    }
+  },
+);
 </script>
 
 <style scoped>
@@ -1348,8 +1378,8 @@ onMounted(async () => {
 .club-info-card {
   margin-top: 16px;
   border-radius: 12px;
-  border: 1px solid #e2e8f0;
-  background: linear-gradient(180deg, rgba(226, 232, 240, 0.25), rgba(255, 255, 255, 0.85));
+  border: 1px solid var(--ccm-border);
+  background: var(--ccm-surface-gradient);
 }
 
 .club-info-card__header {
@@ -1362,11 +1392,12 @@ onMounted(async () => {
 
 .club-info-card__title {
   font-size: 16px;
+  color: var(--ccm-text-primary);
 }
 
 .club-info-card__subtitle {
   font-size: 13px;
-  color: #64748b;
+  color: var(--ccm-text-secondary);
   margin-top: 4px;
 }
 
@@ -1384,12 +1415,12 @@ onMounted(async () => {
 
 .club-info-card__avatar {
   border-radius: 16px;
-  box-shadow: 0 12px 24px -12px rgba(15, 23, 42, 0.45);
+  box-shadow: var(--ccm-card-shadow);
 }
 
 .club-info-card__avatar--placeholder {
-  background: linear-gradient(135deg, rgba(59, 130, 246, 0.18), rgba(99, 102, 241, 0.18));
-  color: #0f172a;
+  background: linear-gradient(135deg, var(--ccm-primary-soft), var(--ccm-accent));
+  color: var(--ccm-text-primary);
   font-weight: 600;
   display: flex;
   align-items: center;
@@ -1397,13 +1428,13 @@ onMounted(async () => {
 }
 
 .club-info-card__description {
-  color: #334155;
+  color: var(--ccm-text-secondary);
   margin-top: 4px;
   line-height: 1.6;
 }
 
 .club-info-card__descriptions {
-  --el-descriptions-table-border: 1px solid rgba(203, 213, 225, 0.6);
+  --el-descriptions-table-border: 1px solid var(--ccm-border);
 }
 
 .club-logo-field {
@@ -1417,7 +1448,7 @@ onMounted(async () => {
   width: 96px;
   height: 96px;
   border-radius: 12px;
-  border: 1px solid rgba(148, 163, 184, 0.4);
+  border: 1px solid var(--ccm-border);
   overflow: hidden;
 }
 
@@ -1429,7 +1460,7 @@ onMounted(async () => {
 }
 
 .activity-banner-field__remove {
-  color: #ef4444;
+  color: var(--ccm-danger);
 }
 
 .activity-banner-field__preview {
@@ -1437,14 +1468,14 @@ onMounted(async () => {
   width: 240px;
   height: 180px;
   border-radius: 12px;
-  border: 1px solid rgba(148, 163, 184, 0.4);
+  border: 1px solid var(--ccm-border);
   overflow: hidden;
 }
 
 .form-item__hint {
   display: block;
   font-size: 12px;
-  color: #94a3b8;
+  color: var(--ccm-text-muted);
 }
 
 .attendance-panel {
@@ -1486,11 +1517,11 @@ onMounted(async () => {
 }
 
 .points-positive {
-  color: #16a34a;
+  color: var(--ccm-success);
 }
 
 .points-negative {
-  color: #dc2626;
+  color: var(--ccm-danger);
 }
 
 .tasks-panel {

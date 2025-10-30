@@ -16,4 +16,5 @@ public class ClubSummaryResponse {
     private int activityCount;
     private List<String> tags;
     private int recommendationScore;
+    private List<String> matchedTags;
 }

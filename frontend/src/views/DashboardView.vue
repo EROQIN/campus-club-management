@@ -105,7 +105,7 @@ onMounted(() => {
 
 .dashboard__card {
   border-radius: 12px;
-  background: linear-gradient(135deg, #4f46e5 0%, #38bdf8 100%);
+  background: linear-gradient(135deg, var(--ccm-primary-strong) 0%, var(--ccm-accent) 100%);
   color: #ffffff;
 }
 
@@ -132,6 +132,7 @@ onMounted(() => {
 
 .dashboard__panel-title {
   font-weight: 600;
+  color: var(--ccm-text-primary);
 }
 
 .dashboard__section {

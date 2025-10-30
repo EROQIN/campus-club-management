@@ -1,13 +1,68 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
 :root {
   font-family: 'Inter', 'PingFang SC', 'Microsoft YaHei', system-ui, -apple-system, BlinkMacSystemFont,
     'Segoe UI', sans-serif;
   line-height: 1.5;
   font-weight: 400;
-  color: #1f2933;
-  background-color: #f5f7fa;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  color-scheme: light;
+
+  --ccm-bg-page: #f5f7fa;
+  --ccm-surface: #ffffff;
+  --ccm-surface-muted: #f1f5f9;
+  --ccm-surface-gradient: linear-gradient(135deg, rgba(226, 232, 240, 0.45), rgba(255, 255, 255, 0.92));
+  --ccm-border: #e2e8f0;
+  --ccm-text-primary: #0f172a;
+  --ccm-text-secondary: #475569;
+  --ccm-text-muted: #94a3b8;
+  --ccm-primary: #2563eb;
+  --ccm-primary-soft: rgba(37, 99, 235, 0.12);
+  --ccm-primary-soft-border: rgba(37, 99, 235, 0.28);
+  --ccm-primary-strong: #1d4ed8;
+  --ccm-accent: #38bdf8;
+  --ccm-success: #16a34a;
+  --ccm-danger: #ef4444;
+  --ccm-card-shadow: 0 24px 48px -32px rgba(15, 23, 42, 0.35);
+  --ccm-sidebar-bg: linear-gradient(180deg, #ffffff 0%, #f1f5f9 100%);
+  --ccm-sidebar-border: rgba(148, 163, 184, 0.3);
+  --ccm-sidebar-text: #1f2937;
+  --ccm-link-hover: #1e40af;
+  --ccm-scrollbar-track: rgba(148, 163, 184, 0.25);
+  --ccm-scrollbar-thumb: rgba(99, 102, 241, 0.45);
+
+  --el-color-primary: var(--ccm-primary);
+  --el-border-radius-base: 12px;
+}
+
+html.dark {
+  color-scheme: dark;
+  --ccm-bg-page: #0b1120;
+  --ccm-surface: #111c2e;
+  --ccm-surface-muted: #152033;
+  --ccm-surface-gradient: linear-gradient(135deg, rgba(30, 64, 175, 0.18), rgba(12, 20, 37, 0.9));
+  --ccm-border: rgba(148, 163, 184, 0.22);
+  --ccm-text-primary: #e2e8f0;
+  --ccm-text-secondary: #cbd5f5;
+  --ccm-text-muted: #94a3b8;
+  --ccm-primary: #60a5fa;
+  --ccm-primary-soft: rgba(96, 165, 250, 0.14);
+  --ccm-primary-soft-border: rgba(96, 165, 250, 0.32);
+  --ccm-primary-strong: #3b82f6;
+  --ccm-accent: #38bdf8;
+  --ccm-success: #22c55e;
+  --ccm-danger: #f87171;
+  --ccm-card-shadow: 0 30px 60px -42px rgba(2, 6, 23, 0.85);
+  --ccm-sidebar-bg: linear-gradient(180deg, #0b1120 0%, #0f172a 100%);
+  --ccm-sidebar-border: rgba(94, 116, 168, 0.3);
+  --ccm-sidebar-text: #dbeafe;
+  --ccm-link-hover: #93c5fd;
+  --ccm-scrollbar-track: rgba(30, 64, 175, 0.25);
+  --ccm-scrollbar-thumb: rgba(59, 130, 246, 0.45);
+
+  --el-color-primary: var(--ccm-primary);
 }
 
 *,
@@ -18,20 +73,101 @@
 
 body {
   margin: 0;
-  background-color: #f5f7fa;
-  color: #1f2933;
   min-height: 100vh;
-}
-
-a {
-  color: #1677ff;
-  text-decoration: none;
-}
-
-a:hover {
-  color: #0958d9;
+  background-color: var(--ccm-bg-page);
+  color: var(--ccm-text-primary);
+  transition: background-color 0.35s ease, color 0.35s ease;
 }
 
 #app {
   min-height: 100vh;
+}
+
+a {
+  color: var(--ccm-primary);
+  transition: color 0.25s ease;
+}
+
+a:hover {
+  color: var(--ccm-link-hover);
+}
+
+::selection {
+  background: var(--ccm-primary);
+  color: #f8fafc;
+}
+
+.el-card {
+  background-color: var(--ccm-surface);
+  border-color: var(--ccm-border);
+  box-shadow: var(--ccm-card-shadow);
+  transition: background-color 0.35s ease, border-color 0.35s ease, box-shadow 0.35s ease;
+}
+
+.el-card.is-never-shadow {
+  box-shadow: var(--ccm-card-shadow);
+}
+
+.el-card__header {
+  color: var(--ccm-text-secondary);
+  font-weight: 600;
+}
+
+.el-divider__text {
+  color: var(--ccm-text-secondary);
+}
+
+.el-table {
+  --el-table-tr-bg-color: var(--ccm-surface);
+  --el-table-header-text-color: var(--ccm-text-secondary);
+  --el-table-border-color: var(--ccm-border);
+  --el-table-row-hover-bg-color: var(--ccm-primary-soft);
+}
+
+.el-empty__description {
+  color: var(--ccm-text-secondary);
+}
+
+.el-divider {
+  border-color: var(--ccm-border);
+}
+
+.el-tabs__item {
+  transition: color 0.3s ease, background-color 0.3s ease;
+}
+
+.el-button.el-button--primary {
+  --el-button-bg-color: var(--ccm-primary);
+  --el-button-border-color: var(--ccm-primary);
+  --el-button-hover-bg-color: var(--ccm-primary-strong);
+  --el-button-hover-border-color: var(--ccm-primary-strong);
+  --el-button-active-bg-color: var(--ccm-primary-strong);
+}
+
+.el-button.is-text,
+.el-button.is-link {
+  color: var(--ccm-text-secondary);
+}
+
+.el-dialog {
+  --el-dialog-bg-color: var(--ccm-surface);
+  --el-dialog-border-radius: 16px;
+  box-shadow: var(--ccm-card-shadow);
+}
+
+.el-pagination {
+  --el-pagination-bg-color: transparent;
+  --el-pagination-text-color: var(--ccm-text-secondary);
+}
+
+.el-radio-button__inner {
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+.el-scrollbar__thumb {
+  background-color: var(--ccm-scrollbar-thumb);
+}
+
+.el-scrollbar__bar {
+  background-color: transparent;
 }

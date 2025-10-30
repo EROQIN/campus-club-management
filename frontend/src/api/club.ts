@@ -6,11 +6,36 @@ export interface ClubQueryParams {
   size?: number;
   keywords?: string;
   category?: string;
+  tags?: string[];
 }
 
 export const fetchClubs = async (params: ClubQueryParams) => {
   const { data } = await api.get<PageResponse<ClubSummary>>('/api/clubs', {
     params,
+    paramsSerializer: (parameters) => {
+      const searchParams = new URLSearchParams();
+      if (typeof parameters.page !== 'undefined') {
+        searchParams.append('page', String(parameters.page));
+      }
+      if (typeof parameters.size !== 'undefined') {
+        searchParams.append('size', String(parameters.size));
+      }
+      if (parameters.keywords) {
+        searchParams.append('keywords', parameters.keywords);
+      }
+      if (parameters.category) {
+        searchParams.append('category', parameters.category);
+      }
+      if (parameters.tags && parameters.tags.length) {
+        parameters.tags
+          .filter(
+            (tag: string | null | undefined): tag is string =>
+              Boolean(tag && tag.trim().length),
+          )
+          .forEach((tag: string) => searchParams.append('tags', tag));
+      }
+      return searchParams.toString();
+    },
   });
   return data;
 };

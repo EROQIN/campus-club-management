@@ -17,7 +17,8 @@ public interface ClubService {
 
     ClubResponse getClub(Long clubId);
 
-    Page<ClubSummaryResponse> searchClubs(String keywords, String category, Pageable pageable);
+    Page<ClubSummaryResponse> searchClubs(
+            String keywords, String category, List<String> tags, Pageable pageable);
 
     Page<ClubSummaryResponse> recommendClubs(Pageable pageable);
 

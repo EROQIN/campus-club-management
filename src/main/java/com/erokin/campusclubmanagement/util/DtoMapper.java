@@ -68,6 +68,7 @@ public class DtoMapper {
         summary.setActivityCount(activityCount);
         summary.setTags(club.getTags().stream().map(t -> t.getName()).toList());
         summary.setRecommendationScore(0);
+        summary.setMatchedTags(List.of());
         return summary;
     }
 

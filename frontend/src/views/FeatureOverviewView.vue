@@ -463,12 +463,12 @@ onMounted(async () => {
   flex: 1;
   padding: 32px;
   border-radius: 16px;
-  background: linear-gradient(135deg, #0ea5e9 0%, #6366f1 100%);
+  background: linear-gradient(135deg, var(--ccm-accent), var(--ccm-primary));
   color: #ffffff;
   display: flex;
   flex-direction: column;
   gap: 16px;
-  box-shadow: 0 18px 40px rgba(99, 102, 241, 0.25);
+  box-shadow: var(--ccm-card-shadow);
 }
 
 .overview__hero-text h1 {
@@ -513,21 +513,24 @@ onMounted(async () => {
 .overview__stat-value {
   font-size: 26px;
   font-weight: 600;
-  color: #1e293b;
+  color: var(--ccm-text-primary);
 }
 
 .overview__stat-label {
   font-size: 14px;
-  color: #475569;
+  color: var(--ccm-text-secondary);
 }
 
 .overview__stat-desc {
   font-size: 12px;
-  color: #94a3b8;
+  color: var(--ccm-text-muted);
 }
 
 .overview__filters {
   border-radius: 16px;
+  background: var(--ccm-surface);
+  border: 1px solid var(--ccm-border);
+  padding: 24px;
 }
 
 .overview__filters-header {
@@ -553,6 +556,9 @@ onMounted(async () => {
   gap: 16px;
   position: relative;
   transition: transform 0.2s ease, box-shadow 0.2s ease;
+  background: var(--ccm-surface);
+  border: 1px solid var(--ccm-border);
+  box-shadow: var(--ccm-card-shadow);
 }
 
 .overview__feature-card:hover {
@@ -596,7 +602,7 @@ onMounted(async () => {
 
 .overview__feature-desc {
   margin: 0;
-  color: #475569;
+  color: var(--ccm-text-secondary);
   line-height: 1.6;
 }
 
@@ -616,11 +622,13 @@ onMounted(async () => {
 
 .overview__panel-title {
   font-weight: 600;
+  color: var(--ccm-text-primary);
 }
 
 .overview__collapse-title {
   font-weight: 600;
   margin-right: 8px;
+  color: var(--ccm-text-primary);
 }
 
 .overview__capability-list {
@@ -632,7 +640,7 @@ onMounted(async () => {
 }
 
 .overview__capability-item {
-  color: #475569;
+  color: var(--ccm-text-secondary);
   line-height: 1.6;
 }
 

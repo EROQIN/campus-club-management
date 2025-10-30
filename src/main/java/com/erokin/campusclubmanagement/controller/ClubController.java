@@ -35,9 +35,10 @@ public class ClubController {
             @RequestParam(value = "page", defaultValue = "0") int page,
             @RequestParam(value = "size", defaultValue = "10") int size,
             @RequestParam(value = "keywords", required = false) String keywords,
-            @RequestParam(value = "category", required = false) String category) {
+            @RequestParam(value = "category", required = false) String category,
+            @RequestParam(value = "tags", required = false) List<String> tags) {
         Pageable pageable = PageRequest.of(Math.max(page, 0), Math.min(size, 50));
-        return ResponseEntity.ok(clubService.searchClubs(keywords, category, pageable));
+        return ResponseEntity.ok(clubService.searchClubs(keywords, category, tags, pageable));
     }
 
     @GetMapping("/my")
