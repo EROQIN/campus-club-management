@@ -42,3 +42,17 @@ aliyun:
     base-path: ${ALIYUN_OSS_BASE_PATH:}
     public-domain: ${ALIYUN_OSS_PUBLIC_DOMAIN:}
     default-url-expiry: ${ALIYUN_OSS_URL_EXPIRY:PT1H}
+  speech:
+    enabled: ${ALIYUN_SPEECH_ENABLED:false}
+    region-id: ${ALIYUN_SPEECH_REGION:cn-shanghai}
+    endpoint-name: ${ALIYUN_SPEECH_ENDPOINT_NAME:cn-shanghai}
+    product: ${ALIYUN_SPEECH_PRODUCT:nls-filetrans}
+    domain: ${ALIYUN_SPEECH_DOMAIN:filetrans.cn-shanghai.aliyuncs.com}
+    api-version: ${ALIYUN_SPEECH_API_VERSION:2018-08-17}
+    version: ${ALIYUN_SPEECH_VERSION:4.0}
+    app-key: ${NLS_APP_KEY:}
+    access-key-id: ${ALIYUN_AK_ID:}
+    access-key-secret: ${ALIYUN_AK_SECRET:}
+    enable-words: true
+    poll-interval: ${ALIYUN_SPEECH_POLL:PT3S}
+    max-poll-attempts: ${ALIYUN_SPEECH_ATTEMPTS:40}

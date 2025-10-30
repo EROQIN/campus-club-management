@@ -78,6 +78,38 @@ CREATE TABLE clubs (
     REFERENCES users (id) ON DELETE SET NULL ON UPDATE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+CREATE TABLE club_promo_videos (
+  id BIGINT AUTO_INCREMENT PRIMARY KEY,
+  club_id BIGINT NOT NULL UNIQUE,
+  object_key VARCHAR(255) NOT NULL,
+  playback_url VARCHAR(500) NOT NULL,
+  original_file_name VARCHAR(255),
+  file_size_bytes BIGINT NOT NULL,
+  duration_seconds INT NOT NULL,
+  status VARCHAR(20) NOT NULL,
+  transcription_task_id VARCHAR(80),
+  subtitles_updated_at DATETIME(6),
+  created_at DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
+  updated_at DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6) ON UPDATE CURRENT_TIMESTAMP(6),
+  CONSTRAINT fk_promo_video_club FOREIGN KEY (club_id)
+    REFERENCES clubs (id) ON DELETE CASCADE ON UPDATE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE club_promo_subtitles (
+  id BIGINT AUTO_INCREMENT PRIMARY KEY,
+  video_id BIGINT NOT NULL,
+  sequence INT NOT NULL,
+  start_ms INT NOT NULL,
+  end_ms INT NOT NULL,
+  text VARCHAR(500) NOT NULL,
+  auto_generated TINYINT(1) NOT NULL DEFAULT 1,
+  created_at DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
+  updated_at DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6) ON UPDATE CURRENT_TIMESTAMP(6),
+  CONSTRAINT fk_promo_subtitle_video FOREIGN KEY (video_id)
+    REFERENCES club_promo_videos (id) ON DELETE CASCADE ON UPDATE CASCADE,
+  INDEX idx_promo_subtitle_video_sequence (video_id, sequence)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 CREATE TABLE club_tags (
   club_id BIGINT NOT NULL,
   tag_id BIGINT NOT NULL,

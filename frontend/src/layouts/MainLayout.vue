@@ -66,7 +66,7 @@ import { computed, onMounted, ref, watch } from 'vue';
 import { useRoute, useRouter, RouterView } from 'vue-router';
 import { useAuthStore } from '../store/auth';
 import { useThemeStore } from '../store/theme';
-import { Collection, House, TrendCharts, Tickets, ChatLineSquare, Box, Setting, Sunny, Moon, Calendar, Finished } from '@element-plus/icons-vue';
+import { Collection, House, TrendCharts, Tickets, ChatLineSquare, Box, Setting, Sunny, Moon, Calendar, Finished, VideoCamera } from '@element-plus/icons-vue';
 import { fetchUnreadCount } from '../api/message';
 
 interface MenuItem {
@@ -92,6 +92,7 @@ const menu: MenuItem[] = [
   { label: '协作广场', route: '/collaborations', icon: ChatLineSquare },
   { label: '社团管理', route: '/club/manage', icon: Collection, roles: ['CLUB_MANAGER', 'UNION_STAFF', 'SYSTEM_ADMIN'] },
   { label: '活动管理', route: '/club/manage/activities', icon: Calendar, roles: ['CLUB_MANAGER', 'UNION_STAFF', 'SYSTEM_ADMIN'] },
+  { label: '视频字幕', route: '/club/manage/video', icon: VideoCamera, roles: ['CLUB_MANAGER', 'UNION_STAFF', 'SYSTEM_ADMIN'] },
   { label: '签到管理', route: '/club/check-in-manager', icon: Finished, roles: ['CLUB_MANAGER', 'UNION_STAFF', 'SYSTEM_ADMIN'] },
   { label: '账号管理', route: '/admin/users', icon: Setting, roles: ['SYSTEM_ADMIN'] },
 ];

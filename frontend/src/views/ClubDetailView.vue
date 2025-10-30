@@ -27,6 +27,38 @@
       </div>
     </el-card>
 
+    <el-card
+      v-if="promoVideo"
+      shadow="never"
+      class="club-detail__panel club-detail__video-card"
+    >
+      <template #header>
+        <div class="club-detail__panel-title">宣传视频</div>
+      </template>
+      <video
+        class="club-detail__video-player"
+        controls
+        :src="promoVideo.playbackUrl"
+        preload="metadata"
+      >
+        <track
+          v-if="promoSubtitleTrack"
+          kind="subtitles"
+          srclang="zh"
+          label="字幕"
+          :src="promoSubtitleTrack"
+          default
+        />
+      </video>
+      <div class="club-detail__video-meta">
+        <el-tag size="small">时长 {{ formatVideoDuration(promoVideo.durationSeconds) }}</el-tag>
+        <el-tag size="small" type="info">
+          {{ (promoVideo.subtitles ?? []).length ? '字幕已同步' : '暂无字幕' }}
+        </el-tag>
+        <el-link type="primary" :href="promoVideo.playbackUrl" target="_blank">打开原始链接</el-link>
+      </div>
+    </el-card>
+
     <el-row :gutter="20">
       <el-col :span="16">
         <el-card shadow="never" class="club-detail__panel">
@@ -74,14 +106,15 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue';
+import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import dayjs from 'dayjs';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import { fetchClub } from '../api/club';
+import { fetchClubPromoVideo } from '../api/promoVideo';
 import { fetchClubActivities } from '../api/activity';
 import { applyMembership, decideMembership, fetchClubApplicants, fetchMyMemberships } from '../api/membership';
-import type { ActivitySummary, ClubDetail, MembershipRecord } from '../types/models';
+import type { ActivitySummary, ClubDetail, MembershipRecord, PromoVideo } from '../types/models';
 import { useAuthStore } from '../store/auth';
 
 const route = useRoute();
@@ -93,6 +126,8 @@ const activities = ref<ActivitySummary[]>([]);
 const myMemberships = ref<MembershipRecord[]>([]);
 const applicants = ref<MembershipRecord[]>([]);
 const applying = ref(false);
+const promoVideo = ref<PromoVideo | null>(null);
+const promoSubtitleTrack = ref<string | null>(null);
 
 const clubId = Number(route.params.id);
 
@@ -103,6 +138,53 @@ const joined = computed(() => myMemberships.value.some((m) => m.clubId === clubI
 const formatDate = (value?: string | null) => {
   if (!value) return '时间待定';
   return dayjs(value).format('YYYY年MM月DD日 HH:mm');
+};
+
+const formatVideoDuration = (seconds?: number | null) => {
+  if (!seconds || seconds <= 0) {
+    return '0 秒';
+  }
+  const rounded = Math.round(seconds);
+  if (rounded < 60) {
+    return `${rounded} 秒`;
+  }
+  const minutes = Math.floor(rounded / 60);
+  const remain = rounded % 60;
+  return `${minutes} 分 ${remain} 秒`;
+};
+
+const toVttTimestamp = (ms: number) => {
+  const totalMs = Math.max(0, Math.round(ms));
+  const hours = Math.floor(totalMs / 3600000);
+  const minutes = Math.floor((totalMs % 3600000) / 60000);
+  const seconds = Math.floor((totalMs % 60000) / 1000);
+  const millis = totalMs % 1000;
+  const hh = String(hours).padStart(2, '0');
+  const mm = String(minutes).padStart(2, '0');
+  const ss = String(seconds).padStart(2, '0');
+  const mmm = String(millis).padStart(3, '0');
+  return `${hh}:${mm}:${ss}.${mmm}`;
+};
+
+const rebuildSubtitleTrack = () => {
+  if (promoSubtitleTrack.value) {
+    URL.revokeObjectURL(promoSubtitleTrack.value);
+    promoSubtitleTrack.value = null;
+  }
+  if (!promoVideo.value || !(promoVideo.value.subtitles ?? []).length) {
+    return;
+  }
+  const lines: string[] = ['WEBVTT', ''];
+  promoVideo.value.subtitles
+    .slice()
+    .sort((a, b) => a.sequence - b.sequence)
+    .forEach((segment, index) => {
+      lines.push(`${index + 1}`);
+      lines.push(`${toVttTimestamp(segment.startMs)} --> ${toVttTimestamp(segment.endMs)}`);
+      lines.push(segment.text);
+      lines.push('');
+    });
+  promoSubtitleTrack.value = URL.createObjectURL(new Blob([lines.join('\n')], { type: 'text/vtt' }));
 };
 
 const loadClub = async () => {
@@ -118,6 +200,21 @@ const loadMemberships = async () => {
   myMemberships.value = await fetchMyMemberships();
   if (isManager.value) {
     applicants.value = await fetchClubApplicants(clubId);
+  }
+};
+
+const loadPromoVideo = async () => {
+  try {
+    const response = await fetchClubPromoVideo(clubId);
+    promoVideo.value = response;
+    rebuildSubtitleTrack();
+  } catch (error: any) {
+    if (error?.response?.status === 404) {
+      promoVideo.value = null;
+      rebuildSubtitleTrack();
+    } else {
+      ElMessage.error(error?.response?.data?.message ?? '宣传视频加载失败');
+    }
   }
 };
 
@@ -152,9 +249,16 @@ const goActivity = (id: number) => {
   router.push(`/activities?id=${id}`);
 };
 
+onBeforeUnmount(() => {
+  if (promoSubtitleTrack.value) {
+    URL.revokeObjectURL(promoSubtitleTrack.value);
+    promoSubtitleTrack.value = null;
+  }
+});
+
 onMounted(async () => {
   await auth.bootstrap();
-  await Promise.all([loadClub(), loadActivities(), loadMemberships()]);
+  await Promise.all([loadClub(), loadActivities(), loadMemberships(), loadPromoVideo()]);
 });
 </script>
 
@@ -207,6 +311,25 @@ onMounted(async () => {
 
 .club-detail__panel {
   border-radius: 12px;
+}
+
+.club-detail__video-card {
+  overflow: hidden;
+}
+
+.club-detail__video-player {
+  width: 100%;
+  max-height: 360px;
+  border-radius: 12px;
+  background: #000;
+}
+
+.club-detail__video-meta {
+  margin-top: 12px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: center;
 }
 
 .club-detail__panel-title {
