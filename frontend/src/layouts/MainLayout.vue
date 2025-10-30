@@ -58,7 +58,7 @@
 import { computed, onMounted, ref, watch } from 'vue';
 import { useRoute, useRouter, RouterView } from 'vue-router';
 import { useAuthStore } from '../store/auth';
-import { House, TrendCharts, Tickets, ChatDotSquare, User, Box, Setting } from '@element-plus/icons-vue';
+import { Collection, House, TrendCharts, Tickets, ChatDotSquare, User, Box, Setting } from '@element-plus/icons-vue';
 import { fetchUnreadCount } from '../api/message';
 
 interface MenuItem {
@@ -75,11 +75,13 @@ const unreadCount = ref<number>(0);
 const breadcrumbs = ref<string[]>([]);
 
 const menu: MenuItem[] = [
+  { label: '功能总览', route: '/overview', icon: Collection },
   { label: '数据总览', route: '/dashboard', icon: TrendCharts },
   { label: '社团广场', route: '/clubs', icon: House },
   { label: '活动日历', route: '/activities', icon: Tickets },
   { label: '消息中心', route: '/messages', icon: ChatDotSquare },
   { label: '资源共享', route: '/resources', icon: Box },
+  { label: '社团管理', route: '/club/manage', icon: Collection, roles: ['CLUB_MANAGER', 'UNION_STAFF', 'SYSTEM_ADMIN'] },
   { label: '账号管理', route: '/admin/users', icon: Setting, roles: ['SYSTEM_ADMIN'] },
   { label: '个人资料', route: '/profile', icon: User },
 ];

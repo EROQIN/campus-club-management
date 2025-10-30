@@ -33,6 +33,8 @@ export interface ActivitySummary {
   endTime: string | null;
   location?: string | null;
   attendeeCount: number;
+  capacity?: number | null;
+  requiresApproval?: boolean;
 }
 
 export interface ActivityDetail extends ActivitySummary {
@@ -57,11 +59,20 @@ export interface MembershipRecord {
   id: number;
   clubId: number;
   clubName: string;
+  memberId?: number;
+  memberName?: string;
+  memberEmail?: string;
   status: 'PENDING' | 'APPROVED' | 'REJECTED' | 'WITHDRAWN';
   membershipRole: 'MEMBER' | 'LEADER' | 'STAFF' | 'ADVISOR';
   applicationReason?: string | null;
   createdAt: string;
   respondedAt?: string | null;
+}
+
+export interface MembershipAdminResponse extends MembershipRecord {
+  memberId: number;
+  memberName: string;
+  memberEmail: string;
 }
 
 export interface MessageRecord {
@@ -74,6 +85,15 @@ export interface MessageRecord {
   readAt?: string | null;
   referenceType?: string | null;
   referenceId?: number | null;
+}
+
+export interface AnnouncementRecord {
+  id: number;
+  title: string;
+  content: string;
+  authorId?: number | null;
+  authorName?: string | null;
+  createdAt: string;
 }
 
 export interface SharedResource {

@@ -12,10 +12,12 @@ public class MembershipResponse {
     private Long id;
     private Long clubId;
     private String clubName;
+    private Long memberId;
+    private String memberName;
+    private String memberEmail;
     private MembershipStatus status;
     private MembershipRole membershipRole;
     private String applicationReason;
     private Instant createdAt;
     private Instant respondedAt;
 }
-

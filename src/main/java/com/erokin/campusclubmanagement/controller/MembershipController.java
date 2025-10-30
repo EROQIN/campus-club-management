@@ -1,5 +1,6 @@
 package com.erokin.campusclubmanagement.controller;
 
+import com.erokin.campusclubmanagement.dto.membership.MembershipAdminResponse;
 import com.erokin.campusclubmanagement.dto.membership.MembershipDecisionRequest;
 import com.erokin.campusclubmanagement.dto.membership.MembershipRequest;
 import com.erokin.campusclubmanagement.dto.membership.MembershipResponse;
@@ -8,6 +9,7 @@ import jakarta.validation.Valid;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -47,8 +49,14 @@ public class MembershipController {
     }
 
     @GetMapping("/clubs/{clubId}")
+    @PreAuthorize("hasRole('CLUB_MANAGER') or hasRole('UNION_STAFF') or hasRole('SYSTEM_ADMIN')")
     public ResponseEntity<List<MembershipResponse>> clubApplicants(@PathVariable Long clubId) {
         return ResponseEntity.ok(membershipService.listClubApplicants(clubId));
     }
-}
 
+    @GetMapping("/clubs/{clubId}/members")
+    @PreAuthorize("hasRole('CLUB_MANAGER') or hasRole('UNION_STAFF') or hasRole('SYSTEM_ADMIN')")
+    public ResponseEntity<List<MembershipAdminResponse>> clubMembers(@PathVariable Long clubId) {
+        return ResponseEntity.ok(membershipService.listClubMembers(clubId));
+    }
+}

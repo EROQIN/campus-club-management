@@ -19,7 +19,12 @@ const routes: RouteRecordRaw[] = [
     path: '/',
     component: () => import('../layouts/MainLayout.vue'),
     children: [
-      { path: '', redirect: '/dashboard' },
+      { path: '', redirect: '/overview' },
+      {
+        path: 'overview',
+        name: 'overview',
+        component: () => import('../views/FeatureOverviewView.vue'),
+      },
       {
         path: 'dashboard',
         name: 'dashboard',
@@ -55,6 +60,12 @@ const routes: RouteRecordRaw[] = [
         path: 'resources',
         name: 'resources',
         component: () => import('../views/ResourcesView.vue'),
+      },
+      {
+        path: 'club/manage',
+        name: 'club-manage',
+        component: () => import('../views/club/ClubManagementView.vue'),
+        meta: { roles: ['CLUB_MANAGER', 'UNION_STAFF', 'SYSTEM_ADMIN'] },
       },
       {
         path: 'admin/users',

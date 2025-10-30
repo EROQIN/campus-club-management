@@ -15,4 +15,6 @@ public class ActivitySummaryResponse {
     private Instant endTime;
     private String location;
     private int attendeeCount;
+    private Integer capacity;
+    private boolean requiresApproval;
 }

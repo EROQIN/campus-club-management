@@ -4,8 +4,10 @@ import com.erokin.campusclubmanagement.dto.activity.ActivityRegistrationResponse
 import com.erokin.campusclubmanagement.dto.activity.ActivityResponse;
 import com.erokin.campusclubmanagement.dto.activity.ActivitySummaryResponse;
 import com.erokin.campusclubmanagement.dto.admin.UserAdminResponse;
+import com.erokin.campusclubmanagement.dto.announcement.AnnouncementResponse;
 import com.erokin.campusclubmanagement.dto.club.ClubResponse;
 import com.erokin.campusclubmanagement.dto.club.ClubSummaryResponse;
+import com.erokin.campusclubmanagement.dto.membership.MembershipAdminResponse;
 import com.erokin.campusclubmanagement.dto.membership.MembershipResponse;
 import com.erokin.campusclubmanagement.dto.message.MessageResponse;
 import com.erokin.campusclubmanagement.dto.resource.ResourceApplicationResponse;
@@ -17,6 +19,7 @@ import com.erokin.campusclubmanagement.entity.ActivityRegistration;
 import com.erokin.campusclubmanagement.entity.Club;
 import com.erokin.campusclubmanagement.entity.ClubMembership;
 import com.erokin.campusclubmanagement.entity.Message;
+import com.erokin.campusclubmanagement.entity.ClubAnnouncement;
 import com.erokin.campusclubmanagement.entity.ResourceApplication;
 import com.erokin.campusclubmanagement.entity.SharedResource;
 import com.erokin.campusclubmanagement.entity.User;
@@ -110,6 +113,8 @@ public class DtoMapper {
         summary.setEndTime(activity.getEndTime());
         summary.setLocation(activity.getLocation());
         summary.setAttendeeCount(attendeeCount);
+        summary.setCapacity(activity.getCapacity());
+        summary.setRequiresApproval(activity.isRequiresApproval());
         return summary;
     }
 
@@ -135,6 +140,23 @@ public class DtoMapper {
         response.setId(membership.getId());
         response.setClubId(membership.getClub().getId());
         response.setClubName(membership.getClub().getName());
+        response.setMemberId(membership.getMember().getId());
+        response.setMemberName(membership.getMember().getFullName());
+        response.setMemberEmail(membership.getMember().getEmail());
+        response.setStatus(membership.getStatus());
+        response.setMembershipRole(membership.getMembershipRole());
+        response.setApplicationReason(membership.getApplicationReason());
+        response.setCreatedAt(membership.getCreatedAt());
+        response.setRespondedAt(membership.getRespondedAt());
+        return response;
+    }
+
+    public MembershipAdminResponse toMembershipAdminResponse(ClubMembership membership) {
+        MembershipAdminResponse response = new MembershipAdminResponse();
+        response.setId(membership.getId());
+        response.setUserId(membership.getMember().getId());
+        response.setFullName(membership.getMember().getFullName());
+        response.setEmail(membership.getMember().getEmail());
         response.setStatus(membership.getStatus());
         response.setMembershipRole(membership.getMembershipRole());
         response.setApplicationReason(membership.getApplicationReason());
@@ -214,6 +236,19 @@ public class DtoMapper {
         response.setRoles(user.getRoles().stream().map(Enum::name).toList());
         response.setCreatedAt(user.getCreatedAt());
         response.setLastLoginAt(user.getLastLoginAt());
+        return response;
+    }
+
+    public AnnouncementResponse toAnnouncementResponse(ClubAnnouncement announcement) {
+        AnnouncementResponse response = new AnnouncementResponse();
+        response.setId(announcement.getId());
+        response.setTitle(announcement.getTitle());
+        response.setContent(announcement.getContent());
+        response.setCreatedAt(announcement.getCreatedAt());
+        if (announcement.getAuthor() != null) {
+            response.setAuthorId(announcement.getAuthor().getId());
+            response.setAuthorName(announcement.getAuthor().getFullName());
+        }
         return response;
     }
 }

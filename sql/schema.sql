@@ -189,6 +189,20 @@ CREATE TABLE resource_applications (
   UNIQUE KEY uk_resource_applicant_time (resource_id, applicant_id, requested_from, requested_until)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+CREATE TABLE club_announcements (
+  id BIGINT AUTO_INCREMENT PRIMARY KEY,
+  club_id BIGINT NOT NULL,
+  author_id BIGINT,
+  title VARCHAR(150) NOT NULL,
+  content VARCHAR(800) NOT NULL,
+  created_at DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
+  updated_at DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6) ON UPDATE CURRENT_TIMESTAMP(6),
+  CONSTRAINT fk_announcement_club FOREIGN KEY (club_id)
+    REFERENCES clubs (id) ON DELETE CASCADE ON UPDATE CASCADE,
+  CONSTRAINT fk_announcement_author FOREIGN KEY (author_id)
+    REFERENCES users (id) ON DELETE SET NULL ON UPDATE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 -- Helpful indexes for dashboard queries
 CREATE INDEX idx_membership_status ON club_memberships (status);
 CREATE INDEX idx_activity_club ON activities (club_id);

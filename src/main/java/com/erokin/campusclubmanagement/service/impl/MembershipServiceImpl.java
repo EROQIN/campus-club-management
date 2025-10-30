@@ -1,5 +1,6 @@
 package com.erokin.campusclubmanagement.service.impl;
 
+import com.erokin.campusclubmanagement.dto.membership.MembershipAdminResponse;
 import com.erokin.campusclubmanagement.dto.membership.MembershipDecisionRequest;
 import com.erokin.campusclubmanagement.dto.membership.MembershipRequest;
 import com.erokin.campusclubmanagement.dto.membership.MembershipResponse;
@@ -137,6 +138,20 @@ public class MembershipServiceImpl implements MembershipService {
                 .toList();
     }
 
+    @Override
+    @Transactional(readOnly = true)
+    public List<MembershipAdminResponse> listClubMembers(Long clubId) {
+        Club club =
+                clubRepository
+                        .findById(clubId)
+                        .orElseThrow(() -> new ResourceNotFoundException("社团不存在"));
+        User current = getCurrentUser();
+        ensureCanManage(current, club);
+        return membershipRepository.findByClubAndStatus(club, MembershipStatus.APPROVED).stream()
+                .map(dtoMapper::toMembershipAdminResponse)
+                .toList();
+    }
+
     private User getCurrentUser() {
         Long id = SecurityUtils.getCurrentUserIdOrThrow();
         return userRepository
@@ -185,4 +200,3 @@ public class MembershipServiceImpl implements MembershipService {
         return user.getRoles().contains(role);
     }
 }
-

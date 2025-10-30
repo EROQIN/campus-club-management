@@ -1,5 +1,6 @@
 package com.erokin.campusclubmanagement.service;
 
+import com.erokin.campusclubmanagement.dto.membership.MembershipAdminResponse;
 import com.erokin.campusclubmanagement.dto.membership.MembershipDecisionRequest;
 import com.erokin.campusclubmanagement.dto.membership.MembershipRequest;
 import com.erokin.campusclubmanagement.dto.membership.MembershipResponse;
@@ -16,5 +17,6 @@ public interface MembershipService {
     List<MembershipResponse> listMyMemberships();
 
     List<MembershipResponse> listClubApplicants(Long clubId);
-}
 
+    List<MembershipAdminResponse> listClubMembers(Long clubId);
+}
