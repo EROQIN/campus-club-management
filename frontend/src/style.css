@@ -1,0 +1,37 @@
+:root {
+  font-family: 'Inter', 'PingFang SC', 'Microsoft YaHei', system-ui, -apple-system, BlinkMacSystemFont,
+    'Segoe UI', sans-serif;
+  line-height: 1.5;
+  font-weight: 400;
+  color: #1f2933;
+  background-color: #f5f7fa;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background-color: #f5f7fa;
+  color: #1f2933;
+  min-height: 100vh;
+}
+
+a {
+  color: #1677ff;
+  text-decoration: none;
+}
+
+a:hover {
+  color: #0958d9;
+}
+
+#app {
+  min-height: 100vh;
+}
