@@ -57,14 +57,30 @@ const routes: RouteRecordRaw[] = [
         component: () => import('../views/ProfileView.vue'),
       },
       {
+        path: 'check-in',
+        name: 'check-in',
+        component: () => import('../views/CheckInView.vue'),
+      },
+      {
         path: 'resources',
         name: 'resources',
         component: () => import('../views/ResourcesView.vue'),
       },
       {
+        path: 'collaborations',
+        name: 'collaborations',
+        component: () => import('../views/CollaborationView.vue'),
+      },
+      {
         path: 'club/manage',
         name: 'club-manage',
         component: () => import('../views/club/ClubManagementView.vue'),
+        meta: { roles: ['CLUB_MANAGER', 'UNION_STAFF', 'SYSTEM_ADMIN'] },
+      },
+      {
+        path: 'club/check-in-manager',
+        name: 'club-checkin-manager',
+        component: () => import('../views/CheckInManagerView.vue'),
         meta: { roles: ['CLUB_MANAGER', 'UNION_STAFF', 'SYSTEM_ADMIN'] },
       },
       {

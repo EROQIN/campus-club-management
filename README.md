@@ -15,12 +15,20 @@
 - MySQL 8+（默认库名 `campus_club`）
 
 ### 后端启动
-1. 配置数据库及安全参数（可通过环境变量覆盖）：
+1. 配置数据库、安全参数与对象存储凭证（可通过环境变量覆盖）：
    ```bash
    export DB_URL="jdbc:mysql://localhost:3306/campus_club?useSSL=false&serverTimezone=Asia/Shanghai"
    export DB_USERNAME="root"
    export DB_PASSWORD="root"
    export JWT_SECRET="replace-with-32-char-secret"
+   # 启用 OSS 集成并使用环境变量凭证（默认关闭）
+   export ALIYUN_OSS_ENABLED=true
+   export ALIYUN_OSS_ENDPOINT="https://oss-cn-hangzhou.aliyuncs.com"
+   export ALIYUN_OSS_REGION="cn-hangzhou"
+   export ALIYUN_OSS_BUCKET="your-bucket-name"
+   export ALIYUN_OSS_BASE_PATH="campus-club/dev"
+   export OSS_ACCESS_KEY_ID="your-access-key-id"
+   export OSS_ACCESS_KEY_SECRET="your-access-key-secret"
    ```
 2. 启动 Spring Boot 服务：
    ```bash
@@ -38,6 +46,12 @@ npm install
 npm run dev
 ```
 默认开发地址 <http://localhost:5173>，后端 API 基础路径 <http://localhost:8123>。
+
+### 阿里云 OSS 集成说明
+- 框架使用 `OSS_ACCESS_KEY_ID` 与 `OSS_ACCESS_KEY_SECRET` 环境变量初始化客户端，便于与容器服务或 RAM 用户策略对接。
+- 未在上传时单独设置 `Object ACL`，全部对象继承 Bucket ACL，权限调整可在 Bucket 级统一修改。
+- `ALIYUN_OSS_PUBLIC_DOMAIN` 支持配置自定义域名/CDN，加速二维码、图片等资源访问；留空时自动构造 `bucket.endpoint` 访问路径。
+- `FileStorageService` 暴露上传、删除、公共 URL 以及临时下载 URL 能力，可直接用于二维码签到、社团 Logo/短视频等文件流场景。
 
 ## 已实现能力
 - **认证与权限**：注册时绑定兴趣标签，JWT 登录，基于角色（学生/负责人/团委/系统管理员）动态展示菜单

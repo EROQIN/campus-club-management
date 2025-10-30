@@ -1,5 +1,6 @@
 package com.erokin.campusclubmanagement.util;
 
+import com.erokin.campusclubmanagement.dto.activity.ActivityCheckInResponse;
 import com.erokin.campusclubmanagement.dto.activity.ActivityRegistrationResponse;
 import com.erokin.campusclubmanagement.dto.activity.ActivityResponse;
 import com.erokin.campusclubmanagement.dto.activity.ActivitySummaryResponse;
@@ -16,6 +17,7 @@ import com.erokin.campusclubmanagement.dto.user.UserProfileResponse;
 import com.erokin.campusclubmanagement.dto.user.UserSummary;
 import com.erokin.campusclubmanagement.entity.Activity;
 import com.erokin.campusclubmanagement.entity.ActivityRegistration;
+import com.erokin.campusclubmanagement.entity.ActivityCheckIn;
 import com.erokin.campusclubmanagement.entity.Club;
 import com.erokin.campusclubmanagement.entity.ClubMembership;
 import com.erokin.campusclubmanagement.entity.Message;
@@ -174,6 +176,20 @@ public class DtoMapper {
         response.setStatus(registration.getStatus());
         response.setNote(registration.getNote());
         response.setCreatedAt(registration.getCreatedAt());
+        response.setAttendeeId(registration.getAttendee().getId());
+        response.setAttendeeName(registration.getAttendee().getFullName());
+        response.setAttendeeEmail(registration.getAttendee().getEmail());
+        return response;
+    }
+
+    public ActivityCheckInResponse toActivityCheckInResponse(ActivityCheckIn checkIn) {
+        ActivityCheckInResponse response = new ActivityCheckInResponse();
+        response.setId(checkIn.getId());
+        response.setActivityId(checkIn.getActivity().getId());
+        response.setAttendeeId(checkIn.getAttendee().getId());
+        response.setAttendeeName(checkIn.getAttendee().getFullName());
+        response.setCheckedInAt(checkIn.getCheckedInAt());
+        response.setMethod(checkIn.getMethod().name());
         return response;
     }
 

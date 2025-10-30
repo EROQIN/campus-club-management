@@ -40,5 +40,14 @@ public class Activity extends BaseEntity {
 
     @Column(nullable = false)
     private boolean requiresApproval = true;
-}
 
+    @Column(length = 255)
+    private String checkInQrUrl;
+
+    @Column(length = 100)
+    private String checkInToken;
+
+    private Instant checkInTokenExpiresAt;
+
+    private Instant checkInQrGeneratedAt;
+}

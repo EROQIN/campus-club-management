@@ -1,24 +1,24 @@
 import api from './http';
 import type { MembershipRecord } from '../types/models';
 
-export const applyMembership = async (payload: { clubId: number; applicationReason?: string }) => {
+export interface ApplyMembershipPayload {
+  clubId: number;
+  applicationReason?: string;
+}
+
+export interface MembershipDecisionPayload {
+  approve: boolean;
+  message?: string;
+}
+
+export const applyMembership = async (payload: ApplyMembershipPayload) => {
   const { data } = await api.post<MembershipRecord>('/api/memberships', payload);
   return data;
 };
 
-export const decideMembership = async (
-  membershipId: number,
-  payload: { approve: boolean; membershipRole?: string; message?: string },
-) => {
-  const { data } = await api.post<MembershipRecord>(
-    `/api/memberships/${membershipId}/decision`,
-    payload,
-  );
+export const decideMembership = async (membershipId: number, payload: MembershipDecisionPayload) => {
+  const { data } = await api.post<MembershipRecord>(`/api/memberships/${membershipId}/decision`, payload);
   return data;
-};
-
-export const withdrawMembership = async (membershipId: number) => {
-  await api.delete(`/api/memberships/${membershipId}`);
 };
 
 export const fetchMyMemberships = async () => {

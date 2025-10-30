@@ -24,6 +24,38 @@
       </el-form>
     </el-card>
 
+    <el-card shadow="never" class="clubs__hero">
+      <div class="clubs__hero-content">
+        <div>
+          <h2>社团广场</h2>
+          <p class="clubs__hero-desc">
+            发现校园里的精彩组织，与志同道合的伙伴一起成长与探索。
+          </p>
+          <el-space wrap>
+            <el-button type="primary" @click="refresh" :loading="clubsLoading">刷新推荐</el-button>
+            <el-button
+              v-if="!isManager"
+              text
+              type="info"
+              @click="loadRecommendations"
+              :loading="recommendationsLoading"
+            >
+              重新匹配兴趣
+            </el-button>
+          </el-space>
+        </div>
+        <el-image
+          class="clubs__hero-illustration"
+          src="https://img.alicdn.com/imgextra/i4/O1CN01uGhOQe1pRecX90uzx_!!6000000005337-2-tps-800-600.png"
+          fit="contain"
+        >
+          <template #error>
+            <el-empty description="精彩社团在等你" :image-size="120" />
+          </template>
+        </el-image>
+      </div>
+    </el-card>
+
     <el-card
       v-if="showRecommendations"
       shadow="never"
@@ -54,37 +86,89 @@
       </el-skeleton>
     </el-card>
 
-    <el-row :gutter="20" class="clubs__list">
-      <el-col :span="8" v-for="club in clubs" :key="club.id">
-        <el-card shadow="hover" class="clubs__card">
-          <div class="clubs__card-header">
-            <img v-if="club.logoUrl" :src="club.logoUrl" alt="logo" class="clubs__logo" />
-            <div>
-              <h3>{{ club.name }}</h3>
-              <div class="clubs__meta">类别：{{ club.category || '未分类' }}</div>
-              <div class="clubs__meta">成员：{{ club.memberCount }} 人</div>
-            </div>
-          </div>
-          <p class="clubs__description">{{ club.description }}</p>
-          <div class="clubs__tags">
-            <el-tag v-for="tag in club.tags" :key="tag" effect="dark" size="small">{{ tag }}</el-tag>
-          </div>
-          <div class="clubs__actions">
-            <el-button link type="primary" @click="goDetail(club.id)">查看详情</el-button>
-            <el-button
-              v-if="!isManager"
-              size="small"
-              type="primary"
-              :loading="joiningClubId === club.id"
-              :disabled="joinedStatus(club.id)"
-              @click="applyClub(club.id)"
-            >
-              {{ joinedStatusText(club.id) }}
-            </el-button>
-          </div>
-        </el-card>
-      </el-col>
-    </el-row>
+    <el-alert
+      v-if="loadError"
+      type="error"
+      :closable="false"
+      class="clubs__error"
+      show-icon
+      :title="loadErrorMessage"
+    />
+
+    <el-skeleton :loading="clubsLoading" animated>
+      <template #template>
+        <el-row :gutter="20" class="clubs__list">
+          <el-col :span="8" v-for="n in 6" :key="n">
+            <el-card shadow="never" class="clubs__card clubs__card--placeholder">
+              <el-skeleton-item variant="image" class="clubs__logo-skeleton" />
+              <el-skeleton-item variant="h3" style="width: 60%" />
+              <el-skeleton-item variant="text" />
+              <el-skeleton-item variant="text" />
+              <el-skeleton-item variant="text" style="width: 80%" />
+            </el-card>
+          </el-col>
+        </el-row>
+      </template>
+      <template #default>
+        <template v-if="clubs.length">
+          <el-row :gutter="20" class="clubs__list">
+            <el-col :span="8" v-for="club in clubs" :key="club.id">
+              <el-card shadow="hover" class="clubs__card">
+                <div class="clubs__card-header">
+                  <el-avatar
+                    v-if="club.logoUrl"
+                    :src="club.logoUrl"
+                    :size="56"
+                    shape="square"
+                    fit="cover"
+                  />
+                  <div>
+                    <h3>{{ club.name }}</h3>
+                    <div class="clubs__meta">类别：{{ club.category || '未分类' }}</div>
+                    <div class="clubs__meta clubs__meta--members">
+                      <el-icon><UserFilled /></el-icon>
+                      <span>{{ club.memberCount }} 人</span>
+                    </div>
+                  </div>
+                </div>
+                <p class="clubs__description">{{ club.description }}</p>
+                <div class="clubs__tags" v-if="(club.tags ?? []).length">
+                  <el-tag
+                    v-for="tag in club.tags ?? []"
+                    :key="tag"
+                    effect="light"
+                    size="small"
+                    round
+                  >
+                    {{ tag }}
+                  </el-tag>
+                </div>
+                <div class="clubs__actions">
+                  <el-button text type="primary" @click="goDetail(club.id)">查看详情</el-button>
+                  <el-button
+                    v-if="!isManager"
+                    size="small"
+                    type="primary"
+                    :loading="joiningClubId === club.id"
+                    :disabled="joinedStatus(club.id)"
+                    @click="applyClub(club.id)"
+                  >
+                    {{ joinedStatusText(club.id) }}
+                  </el-button>
+                </div>
+              </el-card>
+            </el-col>
+          </el-row>
+        </template>
+        <el-empty
+          v-else-if="!clubsLoading && !loadError"
+          description="暂无符合条件的社团"
+          :image-size="160"
+        >
+          <el-button type="primary" @click="refresh">清空筛选条件</el-button>
+        </el-empty>
+      </template>
+    </el-skeleton>
 
     <div class="clubs__pagination">
       <el-pagination
@@ -141,6 +225,7 @@ import { applyMembership, fetchMyMemberships } from '../api/membership';
 import api from '../api/http';
 import type { ClubSummary, MembershipRecord, PageResponse } from '../types/models';
 import { useAuthStore } from '../store/auth';
+import { UserFilled } from '@element-plus/icons-vue';
 
 const auth = useAuthStore();
 const router = useRouter();
@@ -152,6 +237,9 @@ const page = ref<PageResponse<ClubSummary>>();
 const clubs = computed(() => page.value?.content ?? []);
 const memberships = ref<MembershipRecord[]>([]);
 const joiningClubId = ref<number | null>(null);
+const clubsLoading = ref(false);
+const loadError = ref<string | null>(null);
+const loadErrorMessage = computed(() => loadError.value ?? '');
 
 const dialogVisible = ref(false);
 const creating = ref(false);
@@ -181,21 +269,39 @@ const clubRules: FormRules<typeof clubForm> = {
 const isManager = computed(() => auth.roles.some((role) => role === 'CLUB_MANAGER' || role === 'SYSTEM_ADMIN' || role === 'UNION_STAFF'));
 
 const loadClubs = async () => {
-  page.value = await fetchClubs({
-    page: query.page,
-    size: query.size,
-    keywords: query.keywords || undefined,
-    category: query.category || undefined,
-  });
+  clubsLoading.value = true;
+  loadError.value = null;
+  try {
+    page.value = await fetchClubs({
+      page: query.page,
+      size: query.size,
+      keywords: query.keywords || undefined,
+      category: query.category || undefined,
+    });
+  } catch (error: any) {
+    loadError.value = error?.response?.data?.message ?? '社团信息加载失败，请稍后再试';
+    page.value = undefined;
+    ElMessage.error({ message: loadErrorMessage.value });
+  } finally {
+    clubsLoading.value = false;
+  }
 };
 
 const loadMemberships = async () => {
-  memberships.value = await fetchMyMemberships();
+  try {
+    memberships.value = await fetchMyMemberships();
+  } catch (error) {
+    console.error('加载已加入社团失败', error);
+  }
 };
 
 const loadTags = async () => {
-  const { data } = await api.get<string[]>('/api/auth/tags');
-  allTags.value = data;
+  try {
+    const { data } = await api.get<string[]>('/api/auth/tags');
+    allTags.value = data;
+  } catch (error) {
+    console.error('加载标签失败', error);
+  }
 };
 
 const loadRecommendations = async () => {
@@ -203,6 +309,13 @@ const loadRecommendations = async () => {
   try {
     const response = await fetchClubRecommendations({ size: 6 });
     recommendations.value = response.content;
+  } catch (error: any) {
+    recommendations.value = [];
+    if (error?.response?.status !== 404) {
+      ElMessage.warning({
+        message: error?.response?.data?.message ?? '推荐社团加载失败',
+      });
+    }
   } finally {
     recommendationsLoading.value = false;
   }
@@ -283,7 +396,7 @@ const submitClub = () => {
 
 onMounted(async () => {
   await auth.bootstrap();
-  await Promise.all([loadClubs(), loadMemberships(), loadTags(), loadRecommendations()]);
+  await Promise.allSettled([loadClubs(), loadMemberships(), loadTags(), loadRecommendations()]);
 });
 </script>
 
@@ -292,10 +405,45 @@ onMounted(async () => {
   display: flex;
   flex-direction: column;
   gap: 20px;
+  padding-bottom: 20px;
 }
 
 .clubs__filters {
   border-radius: 12px;
+  background: linear-gradient(135deg, #f8fafc 0%, #ffffff 80%);
+  border: 1px solid #e2e8f0;
+}
+
+.clubs__hero {
+  border-radius: 16px;
+  background: radial-gradient(circle at 20% 20%, #f0f9ff, #ffffff 65%);
+  border: 1px solid #dbeafe;
+}
+
+.clubs__hero-content {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 24px;
+}
+
+.clubs__hero-content h2 {
+  margin-bottom: 6px;
+}
+
+.clubs__hero-desc {
+  color: #475569;
+  margin-bottom: 16px;
+  max-width: 420px;
+}
+
+.clubs__hero-illustration {
+  max-width: 240px;
+}
+
+.clubs__error {
+  border-radius: 12px;
+  overflow: hidden;
 }
 
 .clubs__list {
@@ -308,6 +456,8 @@ onMounted(async () => {
   display: flex;
   flex-direction: column;
   justify-content: space-between;
+  border: 1px solid #e2e8f0;
+  box-shadow: 0 12px 24px -16px rgba(15, 23, 42, 0.35);
 }
 
 .clubs__card-header {
@@ -328,9 +478,18 @@ onMounted(async () => {
   color: #6b7280;
 }
 
+.clubs__meta--members {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-weight: 500;
+  color: #1f2937;
+}
+
 .clubs__description {
   color: #4b5563;
   min-height: 60px;
+  line-height: 1.5;
 }
 
 .clubs__tags {
@@ -344,6 +503,7 @@ onMounted(async () => {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  margin-top: 12px;
 }
 
 .clubs__pagination {
@@ -353,9 +513,21 @@ onMounted(async () => {
 
 .clubs__recommend {
   border-radius: 12px;
+  border: 1px solid #e2e8f0;
 }
 
 .clubs__recommend-header {
   font-weight: 600;
+}
+
+.clubs__card--placeholder {
+  gap: 12px;
+  padding: 20px;
+}
+
+.clubs__logo-skeleton {
+  width: 56px;
+  height: 56px;
+  border-radius: 12px;
 }
 </style>

@@ -13,8 +13,30 @@
       <el-form-item label="邮箱">
         <el-input v-model="profile.email" disabled />
       </el-form-item>
-      <el-form-item label="头像地址" prop="avatarUrl">
-        <el-input v-model="form.avatarUrl" placeholder="http(s)://" />
+      <el-form-item label="头像" prop="avatarUrl">
+        <div class="avatar-field">
+          <el-avatar :size="96" :src="form.avatarUrl">
+            {{ profile.fullName?.slice(0, 1) ?? '?' }}
+          </el-avatar>
+          <div class="avatar-field__actions">
+            <el-upload
+              :auto-upload="false"
+              :show-file-list="false"
+              :http-request="handleAvatarUpload"
+            >
+              <el-button type="primary" :loading="avatarUploading">上传头像</el-button>
+            </el-upload>
+            <el-button
+              v-if="form.avatarUrl"
+              text
+              type="danger"
+              @click="clearAvatar"
+            >
+              移除
+            </el-button>
+            <span class="avatar-field__hint">支持 JPG/PNG/WebP，大小 ≤ 5MB，建议正方形图片。</span>
+          </div>
+        </div>
       </el-form-item>
       <el-form-item label="个人简介" prop="bio">
         <el-input
@@ -38,16 +60,18 @@
 
 <script setup lang="ts">
 import { computed, onMounted, reactive, ref } from 'vue';
-import type { FormInstance, FormRules } from 'element-plus';
+import type { FormInstance, FormRules, UploadRequestOptions } from 'element-plus';
 import { ElMessage } from 'element-plus';
 import { useAuthStore } from '../store/auth';
 import api from '../api/http';
 import { updateProfile } from '../api/user';
+import { uploadImage } from '../api/storage';
 
 const auth = useAuthStore();
 const tags = ref<string[]>([]);
 const saving = ref(false);
 const formRef = ref<FormInstance>();
+const avatarUploading = ref(false);
 
 const profile = computed(() => auth.profile ?? {
   fullName: '',
@@ -66,13 +90,6 @@ const form = reactive({
 
 const rules: FormRules<typeof form> = {
   bio: [{ max: 500, message: '个人简介不超过500字', trigger: 'blur' }],
-  avatarUrl: [
-    {
-      type: 'url',
-      message: '请输入合法的链接',
-      trigger: 'blur',
-    },
-  ],
   interestTags: [{ type: 'array', max: 5, message: '最多选择5个兴趣', trigger: 'change' }],
 };
 
@@ -96,6 +113,26 @@ const submit = () => {
   });
 };
 
+const handleAvatarUpload = async (options: UploadRequestOptions) => {
+  const { file, onError, onSuccess } = options;
+  try {
+    avatarUploading.value = true;
+    const result = await uploadImage(file as File, 'users/avatars');
+    form.avatarUrl = result.url;
+    onSuccess?.(result);
+    ElMessage.success('头像上传成功');
+  } catch (error: any) {
+    ElMessage.error(error?.response?.data?.message ?? '头像上传失败，请稍后再试');
+    onError?.(error);
+  } finally {
+    avatarUploading.value = false;
+  }
+};
+
+const clearAvatar = () => {
+  form.avatarUrl = '';
+};
+
 const loadTags = async () => {
   const { data } = await api.get<string[]>('/api/auth/tags');
   tags.value = data;
@@ -117,5 +154,22 @@ onMounted(async () => {
 .profile {
   max-width: 640px;
   border-radius: 12px;
+}
+
+.avatar-field {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.avatar-field__actions {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.avatar-field__hint {
+  font-size: 12px;
+  color: #94a3b8;
 }
 </style>

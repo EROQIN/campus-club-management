@@ -14,5 +14,7 @@ public class ActivityRegistrationResponse {
     private ActivityRegistrationStatus status;
     private String note;
     private Instant createdAt;
+    private Long attendeeId;
+    private String attendeeName;
+    private String attendeeEmail;
 }
-

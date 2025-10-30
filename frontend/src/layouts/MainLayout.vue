@@ -58,7 +58,7 @@
 import { computed, onMounted, ref, watch } from 'vue';
 import { useRoute, useRouter, RouterView } from 'vue-router';
 import { useAuthStore } from '../store/auth';
-import { Collection, House, TrendCharts, Tickets, ChatDotSquare, User, Box, Setting } from '@element-plus/icons-vue';
+import { Collection, House, TrendCharts, Tickets, ChatLineSquare, Box, Setting } from '@element-plus/icons-vue';
 import { fetchUnreadCount } from '../api/message';
 
 interface MenuItem {
@@ -79,11 +79,10 @@ const menu: MenuItem[] = [
   { label: '数据总览', route: '/dashboard', icon: TrendCharts },
   { label: '社团广场', route: '/clubs', icon: House },
   { label: '活动日历', route: '/activities', icon: Tickets },
-  { label: '消息中心', route: '/messages', icon: ChatDotSquare },
   { label: '资源共享', route: '/resources', icon: Box },
+  { label: '协作广场', route: '/collaborations', icon: ChatLineSquare },
   { label: '社团管理', route: '/club/manage', icon: Collection, roles: ['CLUB_MANAGER', 'UNION_STAFF', 'SYSTEM_ADMIN'] },
   { label: '账号管理', route: '/admin/users', icon: Setting, roles: ['SYSTEM_ADMIN'] },
-  { label: '个人资料', route: '/profile', icon: User },
 ];
 
 const filteredMenu = computed(() => {
@@ -160,6 +159,7 @@ watch(
   color: #eef2ff;
   display: flex;
   flex-direction: column;
+  box-shadow: 4px 0 24px -16px rgba(15, 23, 42, 0.7);
 }
 
 .layout__brand {
@@ -167,16 +167,33 @@ watch(
   font-weight: 600;
   padding: 20px;
   text-align: center;
+  background: linear-gradient(135deg, rgba(129, 140, 248, 0.2), rgba(14, 165, 233, 0.1));
+  border-bottom: 1px solid rgba(148, 163, 184, 0.2);
 }
 
 .layout__menu {
   flex: 1;
   border-right: none;
   background-color: transparent;
+  --el-menu-text-color: #cbd5f5;
+  --el-menu-active-color: #60a5fa;
+  --el-menu-hover-bg-color: rgba(148, 163, 184, 0.16);
+  --el-menu-bg-color: transparent;
+}
+
+.layout__menu :deep(.el-menu-item) {
+  border-radius: 8px;
+  margin: 0 12px;
+}
+
+.layout__menu :deep(.el-menu-item__content) {
+  font-weight: 500;
+  letter-spacing: 0.5px;
 }
 
 .layout__menu :deep(.el-menu-item.is-active) {
-  background-color: rgba(255, 255, 255, 0.12);
+  background-color: rgba(96, 165, 250, 0.18);
+  color: #fff;
 }
 
 .layout__header {

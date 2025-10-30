@@ -1,10 +1,17 @@
 package com.erokin.campusclubmanagement.controller;
 
+import com.erokin.campusclubmanagement.dto.activity.ActivityCheckInRequest;
+import com.erokin.campusclubmanagement.dto.activity.ActivityCheckInResponse;
 import com.erokin.campusclubmanagement.dto.activity.ActivityRegistrationRequest;
 import com.erokin.campusclubmanagement.dto.activity.ActivityRegistrationResponse;
 import com.erokin.campusclubmanagement.dto.activity.ActivityRequest;
 import com.erokin.campusclubmanagement.dto.activity.ActivityResponse;
 import com.erokin.campusclubmanagement.dto.activity.ActivitySummaryResponse;
+import com.erokin.campusclubmanagement.dto.activity.CheckInQrResponse;
+import com.erokin.campusclubmanagement.dto.activity.ManualCheckInRequest;
+import org.springframework.core.io.ByteArrayResource;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
 import com.erokin.campusclubmanagement.service.ActivityService;
 import jakarta.validation.Valid;
 import org.springframework.data.domain.Page;
@@ -91,5 +98,48 @@ public class ActivityController {
         Pageable pageable = PageRequest.of(Math.max(page, 0), Math.min(size, 100));
         return ResponseEntity.ok(activityService.listRegistrationsForActivity(id, pageable));
     }
-}
 
+    @PostMapping("/activities/{id}/check-in/qr")
+    public ResponseEntity<CheckInQrResponse> generateQr(@PathVariable Long id) {
+        return ResponseEntity.ok(activityService.generateCheckInQr(id));
+    }
+
+    @PostMapping("/activities/{id}/check-in")
+    public ResponseEntity<ActivityCheckInResponse> checkIn(
+            @PathVariable Long id, @Valid @RequestBody ActivityCheckInRequest request) {
+        return ResponseEntity.ok(activityService.checkIn(id, request));
+    }
+
+    @GetMapping("/activities/{id}/check-ins")
+    public ResponseEntity<Page<ActivityCheckInResponse>> checkInRecords(
+            @PathVariable Long id,
+            @RequestParam(value = "page", defaultValue = "0") int page,
+            @RequestParam(value = "size", defaultValue = "10") int size) {
+        Pageable pageable = PageRequest.of(Math.max(page, 0), Math.min(size, 200));
+        return ResponseEntity.ok(activityService.listCheckIns(id, pageable));
+    }
+
+    @PostMapping("/activities/{id}/check-in/manual")
+    public ResponseEntity<Page<ActivityCheckInResponse>> manualCheckIn(
+            @PathVariable Long id,
+            @Valid @RequestBody ManualCheckInRequest request,
+            @RequestParam(value = "page", defaultValue = "0") int page,
+            @RequestParam(value = "size", defaultValue = "10") int size) {
+        Pageable pageable = PageRequest.of(Math.max(page, 0), Math.min(size, 200));
+        return ResponseEntity.ok(activityService.manualCheckIn(id, request, pageable));
+    }
+
+    @GetMapping("/activities/{id}/attendance/export")
+    public ResponseEntity<ByteArrayResource> exportAttendance(@PathVariable Long id) {
+        byte[] data = activityService.exportAttendance(id);
+        ByteArrayResource resource = new ByteArrayResource(data);
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.parseMediaType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"));
+        headers.setContentDispositionFormData(
+                "attachment", "activity-attendance-" + id + ".xlsx");
+        headers.setContentLength(data.length);
+        return ResponseEntity.ok()
+                .headers(headers)
+                .body(resource);
+    }
+}

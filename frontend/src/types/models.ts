@@ -46,6 +46,91 @@ export interface ActivityDetail extends ActivitySummary {
   requiresApproval: boolean;
 }
 
+export interface CheckInQrResponse {
+  activityId: number;
+  qrUrl: string;
+  token: string;
+  expiresAt: string;
+  generatedAt: string;
+  payload: string;
+}
+
+export interface ActivityCheckInRecord {
+  id: number;
+  activityId: number;
+  attendeeId: number;
+  attendeeName: string;
+  checkedInAt: string;
+  method: 'QR_CODE' | 'MANUAL';
+}
+
+export interface PointRecord {
+  id: number;
+  memberId: number;
+  memberName: string;
+  memberEmail: string;
+  points: number;
+  reason: string;
+  createdById?: number | null;
+  createdByName?: string | null;
+  createdAt: string;
+}
+
+export interface PointLeaderboardEntry {
+  memberId: number;
+  memberName: string;
+  memberEmail: string;
+  totalPoints: number;
+}
+
+export interface ClubTaskAssignment {
+  assignmentId: number;
+  userId: number;
+  userName: string;
+  userEmail: string;
+  status: 'NOT_STARTED' | 'IN_PROGRESS' | 'COMPLETED';
+  remark?: string | null;
+}
+
+export interface ClubTaskItem {
+  id: number;
+  title: string;
+  description?: string | null;
+  dueAt?: string | null;
+  status: 'NOT_STARTED' | 'IN_PROGRESS' | 'COMPLETED';
+  creatorId: number;
+  creatorName: string;
+  createdAt: string;
+  updatedAt: string;
+  assignments: ClubTaskAssignment[];
+}
+
+export interface CollaborationResponseItem {
+  id: number;
+  responderClubId: number;
+  responderClubName: string;
+  responderUserId: number;
+  responderUserName: string;
+  message: string;
+  status: string;
+  createdAt: string;
+}
+
+export interface CollaborationProposalItem {
+  id: number;
+  initiatorClubId: number;
+  initiatorClubName: string;
+  initiatorUserId: number;
+  initiatorUserName: string;
+  title: string;
+  description: string;
+  collaborationType?: string | null;
+  requiredResources?: string | null;
+  status: 'OPEN' | 'IN_PROGRESS' | 'COMPLETED' | 'CANCELLED';
+  createdAt: string;
+  responses: CollaborationResponseItem[];
+}
+
 export interface ActivityRegistrationResponse {
   id: number;
   activityId: number;
@@ -53,6 +138,9 @@ export interface ActivityRegistrationResponse {
   status: 'PENDING' | 'APPROVED' | 'DECLINED' | 'CANCELLED' | 'ATTENDED';
   note?: string | null;
   createdAt: string;
+  attendeeId?: number;
+  attendeeName?: string;
+  attendeeEmail?: string;
 }
 
 export interface MembershipRecord {
@@ -62,6 +150,8 @@ export interface MembershipRecord {
   memberId?: number;
   memberName?: string;
   memberEmail?: string;
+  fullName?: string;
+  email?: string;
   status: 'PENDING' | 'APPROVED' | 'REJECTED' | 'WITHDRAWN';
   membershipRole: 'MEMBER' | 'LEADER' | 'STAFF' | 'ADVISOR';
   applicationReason?: string | null;
@@ -73,6 +163,7 @@ export interface MembershipAdminResponse extends MembershipRecord {
   memberId: number;
   memberName: string;
   memberEmail: string;
+  userId?: number;
 }
 
 export interface MessageRecord {
@@ -175,4 +266,13 @@ export interface UserAdmin {
   roles: Role[] | string[];
   createdAt: string;
   lastLoginAt?: string | null;
+}
+
+export interface UploadResponse {
+  bucket: string;
+  objectKey: string;
+  url: string;
+  fileName?: string | null;
+  size: number;
+  contentType?: string | null;
 }

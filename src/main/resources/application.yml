@@ -32,3 +32,13 @@ app:
 
 server:
   port: ${SERVER_PORT:8123}
+
+aliyun:
+  oss:
+    enabled: ${ALIYUN_OSS_ENABLED:false}
+    endpoint: ${ALIYUN_OSS_ENDPOINT:https://oss-cn-hangzhou.aliyuncs.com}
+    region: ${ALIYUN_OSS_REGION:cn-hangzhou}
+    bucket: ${ALIYUN_OSS_BUCKET:campus-club-sample}
+    base-path: ${ALIYUN_OSS_BASE_PATH:}
+    public-domain: ${ALIYUN_OSS_PUBLIC_DOMAIN:}
+    default-url-expiry: ${ALIYUN_OSS_URL_EXPIRY:PT1H}

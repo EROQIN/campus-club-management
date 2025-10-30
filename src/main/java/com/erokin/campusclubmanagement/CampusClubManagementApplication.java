@@ -1,12 +1,13 @@
 package com.erokin.campusclubmanagement;
 
+import com.erokin.campusclubmanagement.config.oss.AliyunOssProperties;
 import com.erokin.campusclubmanagement.config.properties.AppSecurityProperties;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 
 @SpringBootApplication
-@EnableConfigurationProperties(AppSecurityProperties.class)
+@EnableConfigurationProperties({AppSecurityProperties.class, AliyunOssProperties.class})
 public class CampusClubManagementApplication {
 
     public static void main(String[] args) {
